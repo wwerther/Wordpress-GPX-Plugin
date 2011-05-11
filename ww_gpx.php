@@ -219,54 +219,40 @@ class WW_GPX {
         return acos(sin($lat2*GPX_GRAD2RAD)*sin($lat1*GPX_GRAD2RAD)+cos($lat2*GPX_GRAD2RAD)*cos($lat1*GPX_GRAD2RAD)*cos(($lon2 - $lon1)*GPX_GRAD2RAD));
     }
 
+    public function getall ($needle) {
+        $arr=array();
+        foreach ($this->track->waypoint as $point) {
+            if (array_key_exists($needle,$point)) {
+                array_push($arr,$point[$needle]);
+            } else {
+                array_push($arr,0);
+            }
+        } 
+        return $arr;
+    }
+
+    public function averageheartrate() {
+        $data=$this->getall('heartrate');
+        return array_sum($data)/count($data);
+    }
+
+    public function averagecadence() {
+        $data=$this->getall('cadence');
+        return array_sum($data)/count($data);
+    }
+
+    public function averageelevation() {
+        $data=$this->getall('elevation');
+        return array_sum($data)/count($data);
+    }
+
     public function dump () {
-        var_dump ($this->meta);
-        var_dump ($this->track);
+        $data=var_export ($this->meta,true);
+        $data.=var_export ($this->track,true);
+        $data.='AVG HR:'.$this->averageheartrate().' CAD:'.$this->averagecadence().' ELEV:'.$this->averageelevation();
+        return $data;
     }
 
 }
-
-$gpx=new WW_GPX('heartrate.gpx');
-
-$gpx->parse();
-
-$gpx->dump();
-#var_dump($gpx);
-exit;
-#gpx=file_get_contents('heartrate.gpx');
-
-#reg_match_all('/<trkpt\\s+lat="([^"]*)"\\s+lon="([^"]*)">.*?<time>([^<]*)/is',$gpx,$treffer); 
-
-$len=count($treffer[1]);
-$strecketotal=0;
-
-
-for ($c=1;$c<$len;$c++) {
-
-        $breite1=$treffer[1][$c];
-        $breite2=$treffer[1][$c-1];
-        $laenge1=$treffer[2][$c];
-        $laenge2=$treffer[2][$c-1];
-
-        #   Rüsselsheim Bahnhof
-        #	   $breite1=49.9917;
-        #      $laenge1=8.41321;
-        #   Rüsselsheim Opelbrücke
-        #      $breite2=50.0049;
-        #      $laenge2=8.42182;
-        #   Distanz: 1.593 km, bei Radius: 6378000.388 m
-        
-
-        $entfernung = WW_GPX::distance($breite1,$laenge1,$breite2,$laenge2);
-#        * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1))
-        $strecketotal+=$entfernung;
-
-        print "$c ".$treffer[1][$c]." ".$treffer[2][$c]." ".$entfernung*GPX_RADIUS." ".$treffer[3][$c]." ".$strecketotal*GPX_RADIUS." \n";
-
-}
-
-
-
-
 
 ?>
