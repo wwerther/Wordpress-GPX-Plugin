@@ -36,7 +36,31 @@ class WW_GPX {
         $this->meta=null;
         $this->track->waypoint=array();
         $data=file_get_contents($this->filename);
+
+        # First parse the GPX-File
         xml_parse($this->parser, $data);
+
+        # Now change the sorting order of the waypoints, so they are in a chronologic order
+        usort ($this->track->waypoint,function ($a,$b) {
+            if ($a['time']==$b['time']) return 0;
+            return ($a['time']<$b['time'])? -1 : 1;
+        });
+
+        # And now calculate all extended attributes (speed, distance, etc.)
+        for ($walk=0;$walk<count($this->track->waypoint);$walk++) {
+                $last=$walk-1;
+                if ($last<0) $last=0;
+                $this->track->waypoint[$walk]['distance']=abs($this->distance($this->track->waypoint[$walk]['lat'],$this->track->waypoint[$walk]['lon'],$this->track->waypoint[$last]['lat'],$this->track->waypoint[$last]['lon'])*GPX_RADIUS);
+                $this->track->waypoint[$walk]['totaldistance']=0;
+                $this->track->waypoint[$walk]['totaldistance']=$this->track->waypoint[$last]['totaldistance']+$this->track->waypoint[$walk]['distance'];
+                $this->track->waypoint[$walk]['interval']=abs($this->track->waypoint[$walk]['time']-$this->track->waypoint[$last]['time']);
+                # in m/s
+                $this->track->waypoint[$walk]['speed']=$this->track->waypoint[$walk]['distance']/$this->track->waypoint[$walk]['interval'];
+                if (!$this->track->waypoint[$walk]['speed']) $this->track->waypoint[$walk]['speed']=0;
+                $this->track->waypoint[$walk]['speed']*=3.6; # -> in km/h
+                #$this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['speed']/16.666; # -> in min/km
+        }
+
     }
 
     private function state($index) {
@@ -61,13 +85,26 @@ class WW_GPX {
 
         $dst_arr=array();
 
-        for ($i=0;$i<$elem;$i++) {
+        # We always want to keep the first value
+        array_push($dst_arr,$arr[0]);
 
-            $el=$arr[floor($i*$factor)];
+        # We fill up the intermediate records
+        for ($i=1;$i<$elem;$i++) {
+
+            # new average function for element. I'm not really sure, that this is better....
+            $start=floor(($i-1)*$factor);
+            $end=floor(($i+1)*$factor);
+            $length=$end-$start;
+            $tarr = array_slice ($arr, $start, $length);
+            $el=array_sum($tarr)/count($tarr);
+
+            # old "average function" for elements
+            # $el=$arr[floor($i*$factor)];
             array_push($dst_arr,$el);
 
         }
 
+        # We always want to keep the last value
         array_push($dst_arr,$arr[count($arr)-1]);
         
         return ($dst_arr);
@@ -127,11 +164,6 @@ class WW_GPX {
                 $data['lon']=floatval($attributes['LON']);
                 array_push($this->track->waypoint,$data);
                 $this->cursor=count($this->track->waypoint)-1;
-                $last=$this->cursor-1;
-                if ($last<0) $last=0;
-                $this->track->waypoint[$this->cursor]['distance']=abs($this->distance($data['lat'],$data['lon'],$this->track->waypoint[$last]['lat'],$this->track->waypoint[$last]['lon'])*GPX_RADIUS);
-                $this->track->waypoint[$this->cursor]['totaldistance']=0;
-                $this->track->waypoint[$this->cursor]['totaldistance']=$this->track->waypoint[$last]['totaldistance']+$this->track->waypoint[$this->cursor]['distance'];
                 array_push($this->state,$tag);
                 break;
             }
@@ -244,14 +276,6 @@ class WW_GPX {
                 if (array_pop($this->state)!=$tag) {
                     throw new Exception ("ungültige Schachtelung");
                 }
-                $last=$this->cursor-1;
-                if ($last<0) $last=0;
-                $this->track->waypoint[$this->cursor]['interval']=abs($this->track->waypoint[$this->cursor]['time']-$this->track->waypoint[$last]['time']);
-                # in m/s
-                $this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['distance']/$this->track->waypoint[$this->cursor]['interval'];
-                if (!$this->track->waypoint[$this->cursor]['speed']) $this->track->waypoint[$this->cursor]['speed']=0;
-                $this->track->waypoint[$this->cursor]['speed']*=3.6; # -> in km/h
-                #$this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['speed']/16.666; # -> in min/km
                 break;
             }
             case 'ELE': 
