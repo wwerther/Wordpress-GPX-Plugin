@@ -109,8 +109,13 @@ EOT;
         $error=0;
         $container=self::$container_name.$divno;
         $postcontent='';
-        
-        $directcontent='<div id="'.$container.'">'."\n";
+        $directcontent='';
+
+
+        $directcontent.="<!-- ATTRIBUTES:\n".var_export ($atts,true)."\n -->\n";
+
+
+        $directcontent.='<div id="'.$container.'">'."\n";
 
         /*
          * Evaluate mandatory attributes
@@ -146,10 +151,23 @@ EOT;
         $colors['elevation']='#89A54E';
         $colors['speed']='#CACA00';
 
-        $axis['heartrate']=0;
-        $axis['cadence']=1;
-        $axis['elevation']=2;
-        $axis['speed']=3;
+        $params=array('heartrate','cadence','elevation','speed');
+   
+        $axistitle['heartrate']='Heartrate (bpm)';
+        $axistitle['cadence']='Cadence (rpm)';
+        $axistitle['elevation']='Elevation (m)';
+        $axistitle['speed']='Speed (km/h)';
+
+        $axisleft['heartrate']=true;
+        $axisleft['cadence']=true;
+        $axisleft['elevation']=false;
+        $axisleft['speed']=false;
+
+        $jsvar['heartrate']="data[$divno]['hrs']";
+        $jsvar['cadence']="data[$divno]['cadence']";
+        $jsvar['elevation']="data[$divno]['elevation']";
+        $jsvar['speed']="data[$divno]['speed']";
+        $jsvar['xAxis']="data[$divno]['xAxis']";
 
         $seriesname['heartrate']='Heartrate';
         $seriesname['cadence']='Cadence';
@@ -160,16 +178,25 @@ EOT;
         $seriesunit['cadence']='rpm';
         $seriesunit['elevation']='m';
         $seriesunit['speed']='km/h';
-        
+
+
+        foreach ($params as $param) {
+            $axistitle[$param]=$atts['title_'.$param] ? $atts['title_'.$param] : $axistitle[$param];
+            $colors[$param]=$atts['color_'.$param] ? $atts['color_'.$param] : $colors[$param];
+        }
 
         $dashstyle['heartrate']='shortdot';
+
+        $enableexport='false';
+
+        $process=array('heartrate','cadence','elevation','speed');
+        $process=array('heartrate','elevation');
 
         $title = $gpx->meta->name;
         $time=$gpx->getall('time');
         $subtitle=strftime('%Y:%m:%d %H:%M',$time[0])."-".strftime('%Y:%m:%d %H:%M',$time[count($time)-1]);
 
         $time=$gpx->compact_array($time,$maxelem);
-
         $time=array_map(function($value) {
             return strftime('%H:%M:%S',$value);
         }, $time);
@@ -180,15 +207,19 @@ EOT;
         $distance=$gpx->compact_array($gpx->getall('distance'),$maxelem);
         $speed=$gpx->compact_array($gpx->getall('speed'),$maxelem);
 
-        $directcontent.='<script type="text/javascript">'."\n";
-        $directcontent.="var dtimes$divno = ['".join("','",$time)."'];\n";
-        $directcontent.="var hrs$divno = [".join(',',$hrs)."];\n";
+        $directcontent.='<script type="text/javascript">'."\n 
+        if (! data) {
+            var data=new Array();
+        }
+        data[$divno]=new Array();
+        ";
 
-        $directcontent.="var elev$divno = [".join(',',$elev)."];\n";
+        $directcontent.=$jsvar['xAxis']."= new Array('".join("','",$time)."');\n";
 
-        $directcontent.="var cadence$divno = [".join(',',$cadence)."];\n";
-        $directcontent.="var distance$divno = [".join(',',$distance)."];\n";
-        $directcontent.="var speed$divno = [".join(',',$speed)."];\n";
+        foreach ($process as $elem) {
+            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->compact_array($gpx->getall($elem),$maxelem)).");\n";
+        }
+
         $directcontent.="</script>\n";
 
         $metadata="Spd: ".$gpx->averagespeed()."km/h HR: ".$gpx->averageheartrate()."bpm Total: ".$gpx->totaldistance()." km";
@@ -207,20 +238,13 @@ EOT;
         $series=array();
         $series_units=array();
 
-        array_push($yaxis,self::create_axis('Heartrate (bpm)',$colors['heartrate'],true,0));
-        array_push($yaxis,self::create_axis('Cadence (rpm)',$colors['cadence'],true,1)); 
-        array_push($yaxis,self::create_axis('Elevation',$colors['elevation'],false,2,"return this.value + ' m';")); 
-        array_push($yaxis,self::create_axis('Speed (km/h)',$colors['speed'],false,3)); 
-
-        array_push($series,self::create_series($seriesname['heartrate'],$colors['heartrate'],$axis['heartrate'],"hrs$divno",$dashstyle['heartrate']));
-        array_push($series,self::create_series($seriesname['cadence'],$colors['cadence'],$axis['cadence'],"cadence$divno",$dashstyle['cadence']));
-        array_push($series,self::create_series($seriesname['elevation'],$colors['elevation'],$axis['elevation'],"elev$divno",$dashstyle['elevation']));
-        array_push($series,self::create_series($seriesname['speed'],$colors['speed'],$axis['speed'],"speed$divno",$dashstyle['speed']));
-
-        array_push($series_units,"'".$seriesname['heartrate']."':'".$seriesunit['heartrate']."'");
-        array_push($series_units,"'".$seriesname['cadence']."':'".$seriesunit['cadence']."'");
-        array_push($series_units,"'".$seriesname['elevation']."':'".$seriesunit['elevation']."'");
-        array_push($series_units,"'".$seriesname['speed']."':'".$seriesunit['speed']."'");
+        $axisno=0;
+        foreach ($process as $elem) {
+            array_push($yaxis,self::create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno));
+            array_push($series,self::create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem]));
+            array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
+            $axisno++;
+        }
 
         $series_units = join (',',$series_units);
 
@@ -237,7 +261,7 @@ EOT;
          text: '$subtitle'
       },
       xAxis: [{
-         categories: dtimes$divno,
+         categories: $jsvar[xAxis],
          labels: {
             step: 2,
             rotation: 90,
@@ -283,7 +307,7 @@ $postcontent.=join(',',$series);
 $postcontent.=<<<EOT
         ],
       exporting: {
-        enabled: true,
+        enabled: $enableexport,
         filename: 'custom-file-name'
       }
    });
@@ -301,9 +325,6 @@ EOT;
 
             print self::$foot_script_content;
             print "</script>";
-    		self::$add_script=0;
-            self::$foot_script_content='<script type="text/javascript">$=jQuery;';
-
         }
 	}
 }
