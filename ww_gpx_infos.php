@@ -15,139 +15,278 @@ Max WP Version: 3.1.2
 
 require_once(dirname(__FILE__).'/ww_gpx.php');
 
+class WW_GPX_INFO {
+
+    static $container_name='WW_GPX_CONTAINER';
+
+	static $add_script;
+    static $foot_script_content='';
+ 
+	function init() {
+		add_shortcode('wwgpxinfo', array(__CLASS__, 'handle_shortcode'));
+
+        self::$add_script=0;
+        self::$foot_script_content=<<<EOT
+<script type="text/javascript">
+    $=jQuery;
+
+EOT;
+
+        wp_register_script('highcharts', plugins_url().'/ww_gpx_infos'.'/js/highcharts.js', array('jquery'), '2.1.4', false);
+		wp_register_script('highchartsexport', plugins_url().'/ww_gpx_infos'.'/js/modules/exporting.js', array('jquery','highcharts'), '2.1.4', false);
+
+        add_action('wp_footer', array(__CLASS__, 'add_script'));
+	}
+
+
 /*
  * Our shortcode-Handler for GPX-Files
  * It provides support for the necessary parameters that are defined in
  * http://codex.wordpress.org/Shortcode_API
  */
-function ww_gpx_info_handler( $atts, $content=null, $code="" ) {
-    // $atts    ::= array of attributes
-    // $content ::= text within enclosing form of shortcode element
-    // $code    ::= the shortcode found, when == callback name
-    // examples: [my-shortcode]
-    //           [my-shortcode/]
-    //           [my-shortcode foo='bar']
-    //           [my-shortcode foo='bar'/]
-    //           [my-shortcode]content[/my-shortcode]
-    //           [my-shortcode foo='bar']content[/my-shortcode]
-    #        return 'Das ist nur ein Tes---';
-    #
-    if (! array_key_exists('href',$atts)) {
-        return 'Attribute HREF is missing';
-    }
+	function handle_shortcode( $atts, $content=null, $code="" ) {
+        // $atts    ::= array of attributes
+        // $content ::= text within enclosing form of shortcode element
+        // $code    ::= the shortcode found, when == callback name
+        // examples: [my-shortcode]
+        //           [my-shortcode/]
+        //           [my-shortcode foo='bar']
+        //           [my-shortcode foo='bar'/]
+        //           [my-shortcode]content[/my-shortcode]
+        //           [my-shortcode foo='bar']content[/my-shortcode]
+    	self::$add_script++;
 
-    $gpx=new WW_GPX($atts['href']);
+        $divno=self::$add_script;
 
-    $gpx->parse();
-
-
-#$text=nl2br($gpx->dump());
-
-$time=$gpx->getall('time');
-$hrs=$gpx->getall('heartrate');
-$elev=$gpx->getall('elevation');
-$cadence=$gpx->getall('cadence');
-$count=count($hrs);
-
-$text.=<<<EOT
-    <div id="chart_div">Leeres DIV</div>
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    <script type="text/javascript">
-      google.load("visualization", "1", {packages:["corechart"]});
-      google.setOnLoadCallback(drawChart);
-      function drawChart() {
-        var data = new google.visualization.DataTable(
-         {
-            cols: [
-                   {id: 'time', label: 'Time', type: 'string'},
-                   {id: 'hr', label: 'Heartrate', type: 'number'},
-                   {id: 'ele2', label: 'Elevation', type: 'string'},
-                   {id: 'cadence', label: 'Cadence', type: 'number'},
-                   {id: 'Elevation', label: 'Elevation', type: 'number'},
-                  ],
-            rows: [
-EOT;
-
-
-
-#$text.= "data.addRows($count);\n";
-for ($c=0;$c<$count;$c++) {
-
-   $text.="{c:[{v: '".$time[$c]."'}, {v: ".$hrs[$c]."}, {v: ".$elev[$c]."}, {v: ".$cadence[$c]."}, {v: ".$elev[$c]."}]},\n";
-/*                    {c:[{v: 'Eat'}, {v: 2}]},
-                    {c:[{v: 'Commute'}, {v: 2}]},
-                    {c:[{v: 'Watch TV'}, {v:2}]},
-                    {c:[{v: 'Sleep'}, {v:7, f:'7.000'}]}
-/*
-    $text.= "data.setValue($c, 0,'".$time[$c]."' );\n";
-    $text.= "data.setValue($c, 1,".$hrs[$c]." );\n";
-    $text.= "data.setValue($c, 2,".$elev[$c]." );\n";
-    $text.= "data.setValue($c, 3,".$cadence[$c]." );\n";*/
-}
-
-$text.=<<<EOT
-
-                  ]
-         },
-         0.6
-        );
-EOT;
-
-/*        data.addColumn('number', 'Sales');
-        data.addColumn('number', 'Expenses');
-        data.addRows(4);
-
+        $error=0;
+        $container=self::$container_name.$divno;
+        $postcontent='';
         
-        data.setValue(0, 0, '2004');
-        data.setValue(0, 1, 1000);
-        data.setValue(0, 2, 400);
-        data.setValue(1, 0, '2005');
-        data.setValue(1, 1, 1170);
-        data.setValue(1, 2, 460);
-        data.setValue(2, 0, '2006');
-        data.setValue(2, 1, 860);
-        data.setValue(2, 2, 580);
-        data.setValue(3, 0, '2007');
-        data.setValue(3, 1, 1030);
-        data.setValue(3, 2, 540);
-*/
-$text.=<<<EOT
-        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-        chart.draw(data, {
-                width: 600, 
-                height: 400, 
-                title: 'Heartrate',
-                curveType: "function",
-                'displayAnnotations': true,
-                'thickness': 2,
-                'scaleColumns': [1, 2]
-                });
+        $directcontent='<div id="'.$container.'">'."\n";
+        if (! array_key_exists('href',$atts)) {
+            $directcontent.="Attribute HREF is missing<br/>";
+            $error++;
+        }
+
+        $directcontent.="</div>\n";
+
+        if ($error>0) return $directcontent;
+
+        $gpx=new WW_GPX($atts['href']);
+    
+        $gpx->parse();
+
+        #$text=nl2br($gpx->dump());
+
+        $time=$gpx->getall('time');
+        $hrs=$gpx->getall('heartrate');
+        $elev=$gpx->getall('elevation');
+        $cadence=$gpx->getall('cadence');
+        $count=count($hrs);
+
+        $directcontent.='<script type="text/javascript">'."\n";
+
+        $directcontent.="var dtimes$divno = ['".join("','",$time)."'];\n";
+        $directcontent.="var hrs$divno = [".join(',',$hrs)."];\n";
+        $directcontent.="var elev$divno = [".join(',',$elev)."];\n";
+        $directcontent.="var cadence$divno = [".join(',',$cadence)."];\n";
+        $directcontent.="</script>\n";
+
+
+        $postcontent.=<<<EOT
+ chart$divno = new Highcharts.Chart({
+      chart: {
+         renderTo: '$container',
+         zoomType: 'xy'
+      },
+      title: {
+         text: 'Average Monthly Weather Data for Tokyo'
+      },
+      subtitle: {
+         text: 'Source: WorldClimate.com'
+      },
+      xAxis: [{
+         categories: dtimes$divno,
+         labels: {
+            step: 10,
+            rotation: 90,
+            align: 'left'
+         }
+      }],
+      yAxis: [{ // Primary yAxis
+         labels: {
+            formatter: function() {
+               return this.value +'bpm';
+            },
+            style: {
+               color: '#AA4643'
+            }
+         },
+         title: {
+            text: 'Heartrate',
+            style: {
+               color: '#AA4643'
+            }
+         },
+         opposite: false
+         
+      }, { // Secondary yAxis
+         gridLineWidth: 0,
+         title: {
+            text: 'Cadence',
+            style: {
+               color: '#4572A7'
+            }
+         },
+         labels: {
+            formatter: function() {
+               return this.value +' rpm';
+            },
+            style: {
+               color: '#4572A7'
+            }
+         },
+         opposite: true
+       
+      }, { // Tertiary yAxis
+         gridLineWidth: 0,
+         title: {
+            text: 'Elevation',
+            style: {
+               color: '#89A54E'
+            }
+         },
+         labels: {
+            formatter: function() {
+               return this.value +' m';
+            },
+            style: {
+               color: '#89A54E'
+            }
+         },
+         opposite: true
+      }],
+      tooltip: {
+         shared: true,
+         crosshairs: true,
+      
+         formatter: function() {
+
+            var s = '<b>'+ this.x +'</b>';
+            
+            $.each(this.points, function(i, point) {
+
+                var unit = {
+                    'Heartrate': 'bpm',
+                    'Cadence': 'rpm',
+                    'Elevation': 'm'
+                    }[point.series.name];
+                s += '<br/><span style="color:'+point.series.color+'">'+ point.series.name+':</span> '+ point.y +' '+ unit;
+            });
+            
+            return s;
+          }
+      },
+      legend: {
+         layout: 'vertical',
+         align: 'left',
+         x: 120,
+         verticalAlign: 'top',
+         y: 80,
+         floating: true,
+         backgroundColor: '#FFFFFF'
+      },
+      series: [
+       {
+         name: 'Heartrate',
+         type: 'spline',
+         color: '#AA4643',
+         yAxis: 0,
+         data: hrs$divno,
+         marker: {
+            enabled: false
+         },
+         dashStyle: 'shortdot'               
+      
+      }, 
+      {
+         name: 'Cadence',
+         type: 'spline',
+         color: '#4572A7',
+         yAxis: 1,
+         data: cadence$divno,
+         marker: {
+            enabled: false
+         },
+         dashStyle: 'shortdot'               
+      
+      },
+      
+      {
+         name: 'Elevation',
+         color: '#89A54E',
+         yAxis: 2,
+         marker: {
+            enabled: false
+         },
+         type: 'spline',
+         data: elev$divno
+      }],
+      exporting: {
+        enabled: true,
+        filename: 'custom-file-name'
       }
-    </script>
+   });
+
 EOT;
 
-    return $text;
+    self::$foot_script_content.=$postcontent;
+    return $directcontent;
 
-    exit;
+    }
+ 
+	function add_script() {
+        if (self::$add_script>0) {
+            wp_print_scripts('highcharts');
+        	wp_print_scripts('highchartsexport');
+
+            print self::$foot_script_content;
+            print "</script>";
+    		self::$add_script=0;
+
+            self::$foot_script_content=<<<EOT
+<script type="text/javascript">
+    $=jQuery;
+
+EOT;
+
+        }
+	}
 }
-
-
+ 
 /*
  * I just define a small test, wether or not the add_shortcode function 
  * already exists. This allows me to do a compilation test of this file
  * without the full overhead of wordpress
  */
 if (! function_exists('add_shortcode')) {
+        function wp_register_script() {
+        }
+        function plugins_url() {
+        }
+        function add_action() {
+        }
+        function wp_print_scripts() {
+        }
         function add_shortcode ($shortcode,$function) {
                 echo "Only Test-Case: $shortcode: $function";
 
-                print ww_gpx_info_handler(array('href'=>'http://sonne/heartrate.gpx'),null,'');
+                print WW_GPX_INFO::handle_shortcode(array('href'=>'http://sonne/heartrate.gpx'),null,'');
+                print WW_GPX_INFO::add_script();
         };
 }
 
-/*
- * Register our shortcode to the Wordpress-Handlers
- */
-add_shortcode( 'wwgpxinfo', 'ww_gpx_info_handler' );
+
+WW_GPX_INFO::init();
 
 ?> 

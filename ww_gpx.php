@@ -7,6 +7,7 @@
 # http://de.wikipedia.org/wiki/Orthodrome
 # http://www.kompf.de/gps/distcalc.html
 # http://de.wikipedia.org/wiki/Erdradius
+# http://scribu.net/wordpress/optimal-script-loading.html
 
 # As defined in WGS84 R0
 define('GPX_RADIUS',6371000.8);
