@@ -144,7 +144,7 @@ EOT;
     
         $gpx->parse();
 
-        #$text=nl2br($gpx->dump());
+        $directcontent.="<!-- GPX-Dump-Information -->\n".$gpx->dump()."\n";
 
         $colors['heartrate']='#AA4643';
         $colors['cadence']='#4572A7';
@@ -190,7 +190,9 @@ EOT;
         $enableexport='false';
 
         $process=array('heartrate','cadence','elevation','speed');
-        $process=array('heartrate','elevation');
+        $process=$atts['display'] ? split(' ',$atts['display']) : $process;
+        if (! $gpx->meta->heartrate ) $process=array_diff($process,array('heartrate')); # Remove heartrate graph if we don't have any Meta-information about heartbeats
+        if (! $gpx->meta->cadence ) $process=array_diff($process,array('cadence')); # Remove cadence graph if we don't have ayn Meta-information about cadence
 
         $title = $gpx->meta->name;
         $time=$gpx->getall('time');

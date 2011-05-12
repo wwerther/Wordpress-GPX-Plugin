@@ -207,12 +207,14 @@ class WW_GPX {
             case 'GPXTPX:CAD': {
                 if ($this->state(-2) == 'TRKPT') {
                     $this->track->waypoint[$this->cursor]['cadence']=floatval($cdata);
+                    $this->meta->cadence=true;
                 }
                 break;
             }
             case 'GPXTPX:HR': {
                 if ($this->state(-2) == 'TRKPT') {
                     $this->track->waypoint[$this->cursor]['heartrate']=floatval($cdata);
+                    $this->meta->heartrate=true;
                 }
                 break;
             }
