@@ -26,11 +26,7 @@ class WW_GPX_INFO {
 		add_shortcode('wwgpxinfo', array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
-        self::$foot_script_content=<<<EOT
-<script type="text/javascript">
-    $=jQuery;
-
-EOT;
+        self::$foot_script_content='<script type="text/javascript">$=jQuery;';
 
         wp_register_script('highcharts', plugins_url().'/ww_gpx_infos'.'/js/highcharts.js', array('jquery'), '2.1.4', false);
 		wp_register_script('highchartsexport', plugins_url().'/ww_gpx_infos'.'/js/modules/exporting.js', array('jquery','highcharts'), '2.1.4', false);
@@ -68,7 +64,6 @@ EOT;
             $error++;
         }
 
-        $directcontent.="</div>\n";
 
         if ($error>0) return $directcontent;
 
@@ -78,37 +73,60 @@ EOT;
 
         #$text=nl2br($gpx->dump());
 
+
+        $title = $gpx->meta->name;
         $time=$gpx->getall('time');
-        $hrs=$gpx->getall('heartrate');
-        $elev=$gpx->getall('elevation');
-        $cadence=$gpx->getall('cadence');
-        $count=count($hrs);
+        $subtitle=strftime('%Y:%m:%d %H:%M',$time[0])."-".strftime('%Y:%m:%d %H:%M',$time[count($time)-1]);
+
+        $time=$gpx->compact_array($time,40);
+
+        $time=array_map(function($value) {
+            return strftime('%H:%M:%S',$value);
+        }, $time);
+
+        $hrs=$gpx->compact_array($gpx->getall('heartrate'),10);
+        $elev=$gpx->compact_array($gpx->getall('elevation'),10);
+        $cadence=$gpx->compact_array($gpx->getall('cadence'),10);
+        $distance=$gpx->compact_array($gpx->getall('distance'),10);
+        $speed=$gpx->compact_array($gpx->getall('speed'),10);
 
         $directcontent.='<script type="text/javascript">'."\n";
-
         $directcontent.="var dtimes$divno = ['".join("','",$time)."'];\n";
         $directcontent.="var hrs$divno = [".join(',',$hrs)."];\n";
         $directcontent.="var elev$divno = [".join(',',$elev)."];\n";
         $directcontent.="var cadence$divno = [".join(',',$cadence)."];\n";
+        $directcontent.="var distance$divno = [".join(',',$distance)."];\n";
+        $directcontent.="var speed$divno = [".join(',',$speed)."];\n";
         $directcontent.="</script>\n";
 
+        $metadata="Spd: ".$gpx->averagespeed()."km/h HR: ".$gpx->averageheartrate()."bpm Total: ".$gpx->totaldistance()." km";
+
+        $directcontent.=$gpx->dump();
+
+        $directcontent.=<<<EOT
+        <div id="${container}chart"></div>
+        <div id="${container}meta">
+        $metadata
+        </div>
+</div>
+EOT;
 
         $postcontent.=<<<EOT
  chart$divno = new Highcharts.Chart({
       chart: {
-         renderTo: '$container',
+         renderTo: '${container}chart',
          zoomType: 'xy'
       },
       title: {
-         text: 'Average Monthly Weather Data for Tokyo'
+         text: '$title'
       },
       subtitle: {
-         text: 'Source: WorldClimate.com'
+         text: '$subtitle'
       },
       xAxis: [{
          categories: dtimes$divno,
          labels: {
-            step: 10,
+            step: 1,
             rotation: 90,
             align: 'left'
          }
@@ -181,7 +199,7 @@ EOT;
                     'Cadence': 'rpm',
                     'Elevation': 'm'
                     }[point.series.name];
-                s += '<br/><span style="color:'+point.series.color+'">'+ point.series.name+':</span> '+ point.y +' '+ unit;
+                s += '<br/><span style="color:'+point.series.color+'">'+ point.series.name+':</span> '+ Math.round(point.y*100)/100 +' '+ unit;
             });
             
             return s;
@@ -218,7 +236,7 @@ EOT;
          marker: {
             enabled: false
          },
-         dashStyle: 'shortdot'               
+         dashStyle: 'solid'               
       
       },
       
@@ -253,12 +271,7 @@ EOT;
             print self::$foot_script_content;
             print "</script>";
     		self::$add_script=0;
-
-            self::$foot_script_content=<<<EOT
-<script type="text/javascript">
-    $=jQuery;
-
-EOT;
+            self::$foot_script_content='<script type="text/javascript">$=jQuery;';
 
         }
 	}

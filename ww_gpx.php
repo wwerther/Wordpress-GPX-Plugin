@@ -46,6 +46,28 @@ class WW_GPX {
         return $this->state[$index];
     }
 
+
+    function compact_array ($arr,$elem) {
+
+        $total=count($arr);
+        $factor=$total/$elem;
+
+        $dst_arr=array();
+
+        for ($i=0;$i<$elem-1;$i++) {
+
+            $el=$arr[floor($i*$factor)];
+            array_push($dst_arr,$el);
+
+        }
+
+        array_push($dst_arr,$arr[count($arr)-1]);
+        
+        return ($dst_arr);
+
+    }
+
+
     function tag_open($parser, $tag, $attributes) {
         $tag=strtoupper($tag);
         switch ($tag) {
@@ -76,6 +98,13 @@ class WW_GPX {
                 array_push($this->state,$tag);
                 break;
             }
+            case 'NAME': {
+                if ($this->state(-1) != 'TRK') {
+                    throw new Exception("INVALID $tag at current position. Please check GPX-File");
+                }
+                array_push($this->state,$tag);
+                break;
+            }
             case 'TRKSEG': {
                 if ($this->state(-1) != 'TRK') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
@@ -87,13 +116,13 @@ class WW_GPX {
                 if ($this->state(-1) != 'TRKSEG') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                $data['lat']=$attributes['LAT'];
-                $data['lon']=$attributes['LON'];
+                $data['lat']=floatval($attributes['LAT']);
+                $data['lon']=floatval($attributes['LON']);
                 array_push($this->track->waypoint,$data);
                 $this->cursor=count($this->track->waypoint)-1;
                 $last=$this->cursor-1;
                 if ($last<0) $last=0;
-                $this->track->waypoint[$this->cursor]['distance']=$this->distance($data['lat'],$data['lon'],$this->track->waypoint[$last]['lat'],$this->track->waypoint[$last]['lon'])*GPX_RADIUS;
+                $this->track->waypoint[$this->cursor]['distance']=abs($this->distance($data['lat'],$data['lon'],$this->track->waypoint[$last]['lat'],$this->track->waypoint[$last]['lon'])*GPX_RADIUS);
                 $this->track->waypoint[$this->cursor]['totaldistance']=0;
                 $this->track->waypoint[$this->cursor]['totaldistance']=$this->track->waypoint[$last]['totaldistance']+$this->track->waypoint[$this->cursor]['distance'];
                 array_push($this->state,$tag);
@@ -149,27 +178,32 @@ class WW_GPX {
                 }
                 break;
             }
+            case 'NAME': {
+                $this->meta->name=$cdata;
+                break;
+            }
             case 'ELE': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['elevation']=$cdata;
+                    $this->track->waypoint[$this->cursor]['elevation']=floatval($cdata);
                 }
                 break;
             }
             case 'TIME': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['time']=$cdata;
+                    # We want to store the time information as Unix-Timestamp. This makes calculation of speed etc. a lot easier
+                    $this->track->waypoint[$this->cursor]['time']=strtotime($cdata);
                 }
                 break;
             }
             case 'GPXTPX:CAD': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['cadence']=$cdata;
+                    $this->track->waypoint[$this->cursor]['cadence']=floatval($cdata);
                 }
                 break;
             }
             case 'GPXTPX:HR': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['heartrate']=$cdata;
+                    $this->track->waypoint[$this->cursor]['heartrate']=floatval($cdata);
                 }
                 break;
             }
@@ -187,9 +221,28 @@ class WW_GPX {
             case 'METADATA': 
             case 'LINK': 
             case 'TEXT': 
+            case 'NAME': 
             case 'TRK': 
-            case 'TRKSEG': 
-            case 'TRKPT': 
+            case 'TRKSEG': {
+                if (array_pop($this->state)!=$tag) {
+                    throw new Exception ("ungültige Schachtelung");
+                }
+                break;
+            }
+            case 'TRKPT': {
+                if (array_pop($this->state)!=$tag) {
+                    throw new Exception ("ungültige Schachtelung");
+                }
+                $last=$this->cursor-1;
+                if ($last<0) $last=0;
+                $this->track->waypoint[$this->cursor]['interval']=abs($this->track->waypoint[$this->cursor]['time']-$this->track->waypoint[$last]['time']);
+                # in m/s
+                $this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['distance']/$this->track->waypoint[$this->cursor]['interval'];
+                if (!$this->track->waypoint[$this->cursor]['speed']) $this->track->waypoint[$this->cursor]['speed']=0;
+                $this->track->waypoint[$this->cursor]['speed']*=3.6; # -> in km/h
+                #$this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['speed']/16.666; # -> in min/km
+                break;
+            }
             case 'ELE': 
             case 'TIME': 
             case 'GPXTPX:HR': 
@@ -234,23 +287,35 @@ class WW_GPX {
 
     public function averageheartrate() {
         $data=$this->getall('heartrate');
-        return array_sum($data)/count($data);
+        return sprintf('%.2f',array_sum($data)/count($data));
     }
 
     public function averagecadence() {
         $data=$this->getall('cadence');
-        return array_sum($data)/count($data);
+        return sprintf('%.2f',array_sum($data)/count($data));
     }
 
     public function averageelevation() {
         $data=$this->getall('elevation');
-        return array_sum($data)/count($data);
+        return sprintf('%.2f',array_sum($data)/count($data));
+    }
+
+    public function averagespeed() {
+        $avgspeed=$this->track->waypoint[count($this->track->waypoint)-1]['totaldistance']/abs($this->track->waypoint[0]['time']-$this->track->waypoint[count($this->track->waypoint)-1]['time']);
+        $avgspeed*=3.6;
+        return sprintf('%.2f',$avgspeed);
+    }
+
+    public function totaldistance() {
+        return sprintf('%.2f',$this->track->waypoint[count($this->track->waypoint)-1]['totaldistance']/1000);
     }
 
     public function dump () {
-        $data=var_export ($this->meta,true);
+        $data="<!--\n";
+        $data.=var_export ($this->meta,true);
         $data.=var_export ($this->track,true);
         $data.='AVG HR:'.$this->averageheartrate().' CAD:'.$this->averagecadence().' ELEV:'.$this->averageelevation();
+        $data.="\n-->\n";
         return $data;
     }
 
