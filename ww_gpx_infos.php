@@ -34,6 +34,57 @@ class WW_GPX_INFO {
         add_action('wp_footer', array(__CLASS__, 'add_script'));
 	}
 
+    function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null) {
+        if (!is_null($dashstyle)){
+            $dashstyle="dashStyle: '$dashstyle',";               
+        } else $dashstyle='';
+        return <<<EOT
+        {
+         name: '$seriesname',
+         color: '$seriescolor',
+         yAxis: $seriesaxis,
+         $dashstyle
+         marker: {
+            enabled: false
+         },
+         type: 'spline',
+         data: $series_data_name
+      }
+EOT;
+
+    }
+
+    function create_axis($axistitle,$axiscolor,$leftside=true,$axisno=0,$formatter=null) {
+        $opposite='false';
+        if ($leftside==false) $opposite='true';
+
+        if (!is_null($formatter)){
+            $formatter=<<<EOT
+            formatter: function() {
+               $formatter
+            },
+EOT;
+        } else $formatter='';
+
+        return <<<EOT
+      { // Another Y-Axis No: $axisno
+         labels: {
+            $formatter
+            style: {
+               color: '$axiscolor'
+            }
+         },
+         title: {
+            text: '$axistitle',
+            style: {
+               color: '$axiscolor'
+            }
+         },
+         opposite: $opposite
+      }
+EOT;
+    }
+
 
 /*
  * Our shortcode-Handler for GPX-Files
@@ -50,6 +101,7 @@ class WW_GPX_INFO {
         //           [my-shortcode foo='bar'/]
         //           [my-shortcode]content[/my-shortcode]
         //           [my-shortcode foo='bar']content[/my-shortcode]
+        //           [wwgpxinfo href="<GPX-Source>" (maxelem="51")     ]
     	self::$add_script++;
 
         $divno=self::$add_script;
@@ -59,13 +111,29 @@ class WW_GPX_INFO {
         $postcontent='';
         
         $directcontent='<div id="'.$container.'">'."\n";
+
+        /*
+         * Evaluate mandatory attributes
+         */
         if (! array_key_exists('href',$atts)) {
             $directcontent.="Attribute HREF is missing<br/>";
             $error++;
         }
 
+        /* In Case of errors we abort here*/
+        if ($error>0) return $directcontent."</div>";
 
-        if ($error>0) return $directcontent;
+
+        /* 
+         * Evaluate optional attributes 
+         */
+
+        $maxelem=51;
+        if (array_key_exists('maxelem',$atts)) {
+            $maxelem=intval($atts['maxelem']);
+        }
+
+        
 
         $gpx=new WW_GPX($atts['href']);
     
@@ -73,27 +141,51 @@ class WW_GPX_INFO {
 
         #$text=nl2br($gpx->dump());
 
+        $colors['heartrate']='#AA4643';
+        $colors['cadence']='#4572A7';
+        $colors['elevation']='#89A54E';
+        $colors['speed']='#CACA00';
+
+        $axis['heartrate']=0;
+        $axis['cadence']=1;
+        $axis['elevation']=2;
+        $axis['speed']=3;
+
+        $seriesname['heartrate']='Heartrate';
+        $seriesname['cadence']='Cadence';
+        $seriesname['elevation']='Elevation';
+        $seriesname['speed']='Speed';
+
+        $seriesunit['heartrate']='bpm';
+        $seriesunit['cadence']='rpm';
+        $seriesunit['elevation']='m';
+        $seriesunit['speed']='km/h';
+        
+
+        $dashstyle['heartrate']='shortdot';
 
         $title = $gpx->meta->name;
         $time=$gpx->getall('time');
         $subtitle=strftime('%Y:%m:%d %H:%M',$time[0])."-".strftime('%Y:%m:%d %H:%M',$time[count($time)-1]);
 
-        $time=$gpx->compact_array($time,40);
+        $time=$gpx->compact_array($time,$maxelem);
 
         $time=array_map(function($value) {
             return strftime('%H:%M:%S',$value);
         }, $time);
 
-        $hrs=$gpx->compact_array($gpx->getall('heartrate'),10);
-        $elev=$gpx->compact_array($gpx->getall('elevation'),10);
-        $cadence=$gpx->compact_array($gpx->getall('cadence'),10);
-        $distance=$gpx->compact_array($gpx->getall('distance'),10);
-        $speed=$gpx->compact_array($gpx->getall('speed'),10);
+        $hrs=$gpx->compact_array($gpx->getall('heartrate'),$maxelem);
+        $elev=$gpx->compact_array($gpx->getall('elevation'),$maxelem);
+        $cadence=$gpx->compact_array($gpx->getall('cadence'),$maxelem);
+        $distance=$gpx->compact_array($gpx->getall('distance'),$maxelem);
+        $speed=$gpx->compact_array($gpx->getall('speed'),$maxelem);
 
         $directcontent.='<script type="text/javascript">'."\n";
         $directcontent.="var dtimes$divno = ['".join("','",$time)."'];\n";
         $directcontent.="var hrs$divno = [".join(',',$hrs)."];\n";
+
         $directcontent.="var elev$divno = [".join(',',$elev)."];\n";
+
         $directcontent.="var cadence$divno = [".join(',',$cadence)."];\n";
         $directcontent.="var distance$divno = [".join(',',$distance)."];\n";
         $directcontent.="var speed$divno = [".join(',',$speed)."];\n";
@@ -111,6 +203,27 @@ class WW_GPX_INFO {
 </div>
 EOT;
 
+        $yaxis=array();
+        $series=array();
+        $series_units=array();
+
+        array_push($yaxis,self::create_axis('Heartrate (bpm)',$colors['heartrate'],true,0));
+        array_push($yaxis,self::create_axis('Cadence (rpm)',$colors['cadence'],true,1)); 
+        array_push($yaxis,self::create_axis('Elevation',$colors['elevation'],false,2,"return this.value + ' m';")); 
+        array_push($yaxis,self::create_axis('Speed (km/h)',$colors['speed'],false,3)); 
+
+        array_push($series,self::create_series($seriesname['heartrate'],$colors['heartrate'],$axis['heartrate'],"hrs$divno",$dashstyle['heartrate']));
+        array_push($series,self::create_series($seriesname['cadence'],$colors['cadence'],$axis['cadence'],"cadence$divno",$dashstyle['cadence']));
+        array_push($series,self::create_series($seriesname['elevation'],$colors['elevation'],$axis['elevation'],"elev$divno",$dashstyle['elevation']));
+        array_push($series,self::create_series($seriesname['speed'],$colors['speed'],$axis['speed'],"speed$divno",$dashstyle['speed']));
+
+        array_push($series_units,"'".$seriesname['heartrate']."':'".$seriesunit['heartrate']."'");
+        array_push($series_units,"'".$seriesname['cadence']."':'".$seriesunit['cadence']."'");
+        array_push($series_units,"'".$seriesname['elevation']."':'".$seriesunit['elevation']."'");
+        array_push($series_units,"'".$seriesname['speed']."':'".$seriesunit['speed']."'");
+
+        $series_units = join (',',$series_units);
+
         $postcontent.=<<<EOT
  chart$divno = new Highcharts.Chart({
       chart: {
@@ -126,136 +239,54 @@ EOT;
       xAxis: [{
          categories: dtimes$divno,
          labels: {
-            step: 1,
+            step: 2,
             rotation: 90,
             align: 'left'
          }
       }],
-      yAxis: [{ // Primary yAxis
-         labels: {
-            formatter: function() {
-               return this.value +'bpm';
-            },
-            style: {
-               color: '#AA4643'
-            }
-         },
-         title: {
-            text: 'Heartrate',
-            style: {
-               color: '#AA4643'
-            }
-         },
-         opposite: false
-         
-      }, { // Secondary yAxis
-         gridLineWidth: 0,
-         title: {
-            text: 'Cadence',
-            style: {
-               color: '#4572A7'
-            }
-         },
-         labels: {
-            formatter: function() {
-               return this.value +' rpm';
-            },
-            style: {
-               color: '#4572A7'
-            }
-         },
-         opposite: true
-       
-      }, { // Tertiary yAxis
-         gridLineWidth: 0,
-         title: {
-            text: 'Elevation',
-            style: {
-               color: '#89A54E'
-            }
-         },
-         labels: {
-            formatter: function() {
-               return this.value +' m';
-            },
-            style: {
-               color: '#89A54E'
-            }
-         },
-         opposite: true
-      }],
+      yAxis: [
+EOT;
+
+$postcontent.=join(',',$yaxis);
+
+$postcontent.=<<<EOT
+      ],
       tooltip: {
          shared: true,
          crosshairs: true,
-      
+         borderColor: '#CDCDCD',
          formatter: function() {
 
             var s = '<b>'+ this.x +'</b>';
             
             $.each(this.points, function(i, point) {
-
-                var unit = {
-                    'Heartrate': 'bpm',
-                    'Cadence': 'rpm',
-                    'Elevation': 'm'
-                    }[point.series.name];
-                s += '<br/><span style="color:'+point.series.color+'">'+ point.series.name+':</span> '+ Math.round(point.y*100)/100 +' '+ unit;
+                var unit = { $series_units } [point.series.name];
+                s += '<br/><span style="color:'+point.series.color+'">'+ point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit;
             });
             
             return s;
           }
       },
       legend: {
-         layout: 'vertical',
-         align: 'left',
-         x: 120,
-         verticalAlign: 'top',
-         y: 80,
+         layout: 'horizontal',
+         align: 'center',
+         verticalAlign: 'bottom',
+         y:-80,
          floating: true,
          backgroundColor: '#FFFFFF'
       },
       series: [
-       {
-         name: 'Heartrate',
-         type: 'spline',
-         color: '#AA4643',
-         yAxis: 0,
-         data: hrs$divno,
-         marker: {
-            enabled: false
-         },
-         dashStyle: 'shortdot'               
-      
-      }, 
-      {
-         name: 'Cadence',
-         type: 'spline',
-         color: '#4572A7',
-         yAxis: 1,
-         data: cadence$divno,
-         marker: {
-            enabled: false
-         },
-         dashStyle: 'solid'               
-      
-      },
-      
-      {
-         name: 'Elevation',
-         color: '#89A54E',
-         yAxis: 2,
-         marker: {
-            enabled: false
-         },
-         type: 'spline',
-         data: elev$divno
-      }],
+EOT;
+
+$postcontent.=join(',',$series);
+
+$postcontent.=<<<EOT
+        ],
       exporting: {
         enabled: true,
         filename: 'custom-file-name'
       }
    });
-
 EOT;
 
     self::$foot_script_content.=$postcontent;

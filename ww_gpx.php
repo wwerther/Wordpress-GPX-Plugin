@@ -49,12 +49,19 @@ class WW_GPX {
 
     function compact_array ($arr,$elem) {
 
+        # If we should return 0 elements, we will return all elements
+        if ($elem==0) return $arr;
+
         $total=count($arr);
+
+        # If we should return more elements than exist, we will return all elements
+        if ($elem>$total) return $arr;
+
         $factor=$total/$elem;
 
         $dst_arr=array();
 
-        for ($i=0;$i<$elem-1;$i++) {
+        for ($i=0;$i<$elem;$i++) {
 
             $el=$arr[floor($i*$factor)];
             array_push($dst_arr,$el);
@@ -147,6 +154,7 @@ class WW_GPX {
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
+                $this->track->meta->heartrate=true;
                 array_push($this->state,$tag);
                 break;
             }
@@ -154,6 +162,7 @@ class WW_GPX {
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
+                $this->track->meta->cadence=true;
                 array_push($this->state,$tag);
                 break;
             }
@@ -279,7 +288,7 @@ class WW_GPX {
             if (array_key_exists($needle,$point)) {
                 array_push($arr,$point[$needle]);
             } else {
-                array_push($arr,0);
+                array_push($arr,'null');
             }
         } 
         return $arr;
