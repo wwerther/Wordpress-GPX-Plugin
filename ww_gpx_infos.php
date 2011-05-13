@@ -358,4 +358,4 @@ if (! function_exists('add_shortcode')) {
 
 WW_GPX_INFO::init();
 
-?> 
+?>
