@@ -86,6 +86,10 @@ EOT;
     }
 
 
+	public static function formattime($value) {
+            return strftime('%H:%M:%S',$value);
+	}
+
 /*
  * Our shortcode-Handler for GPX-Files
  * It provides support for the necessary parameters that are defined in
@@ -199,9 +203,7 @@ EOT;
         $subtitle=strftime('%Y:%m:%d %H:%M',$time[0])."-".strftime('%Y:%m:%d %H:%M',$time[count($time)-1]);
 
         $time=$gpx->compact_array($time,$maxelem);
-        $time=array_map(function($value) {
-            return strftime('%H:%M:%S',$value);
-        }, $time);
+        $time=array_map('WW_GPX_INFO::formattime', $time);
 
         $hrs=$gpx->compact_array($gpx->getall('heartrate'),$maxelem);
         $elev=$gpx->compact_array($gpx->getall('elevation'),$maxelem);

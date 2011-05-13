@@ -31,6 +31,11 @@ class WW_GPX {
         xml_set_character_data_handler($this->parser, "cdata");
     }
 
+    function mysort($a,$b) {
+            if ($a['time']==$b['time']) return 0;
+            return ($a['time']<$b['time'])? -1 : 1;
+    }
+
     function parse() {
         $this->state=array('INIT');
         $this->meta=null;
@@ -41,10 +46,7 @@ class WW_GPX {
         xml_parse($this->parser, $data);
 
         # Now change the sorting order of the waypoints, so they are in a chronologic order
-        usort ($this->track->waypoint,function ($a,$b) {
-            if ($a['time']==$b['time']) return 0;
-            return ($a['time']<$b['time'])? -1 : 1;
-        });
+        usort ($this->track->waypoint,'WW_GPX::mysort');
 
         # And now calculate all extended attributes (speed, distance, etc.)
         for ($walk=0;$walk<count($this->track->waypoint);$walk++) {
