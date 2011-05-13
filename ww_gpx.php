@@ -31,7 +31,7 @@ class WW_GPX {
         xml_set_character_data_handler($this->parser, "cdata");
     }
 
-    function mysort($a,$b) {
+    public static function mysort($a,$b) {
             if ($a['time']==$b['time']) return 0;
             return ($a['time']<$b['time'])? -1 : 1;
     }
@@ -57,9 +57,11 @@ class WW_GPX {
                 $this->track->waypoint[$walk]['totaldistance']=$this->track->waypoint[$last]['totaldistance']+$this->track->waypoint[$walk]['distance'];
                 $this->track->waypoint[$walk]['interval']=abs($this->track->waypoint[$walk]['time']-$this->track->waypoint[$last]['time']);
                 # in m/s
-                $this->track->waypoint[$walk]['speed']=$this->track->waypoint[$walk]['distance']/$this->track->waypoint[$walk]['interval'];
+		if ($this->track->waypoint[$walk]['interval'] > 0) {
+	                $this->track->waypoint[$walk]['speed']=$this->track->waypoint[$walk]['distance']/$this->track->waypoint[$walk]['interval'];
+	                $this->track->waypoint[$walk]['speed']*=3.6; # -> in km/h
+		} 
                 if (!$this->track->waypoint[$walk]['speed']) $this->track->waypoint[$walk]['speed']=0;
-                $this->track->waypoint[$walk]['speed']*=3.6; # -> in km/h
                 #$this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['speed']/16.666; # -> in min/km
         }
 
