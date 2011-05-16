@@ -40,6 +40,8 @@ class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
     public function __construct () {
         $this['totalinterval']=0;
         $this['totaldistance']=0;
+        $this['speed']=null;
+        $this['speed']=null;
     }
 
     public function distance (self $trackpoint) {
@@ -157,6 +159,8 @@ class WW_GPX implements Countable, ArrayAccess{
         $this->track->waypoint=array();
         $this->track->track=array();
         $this->currenttp=null;
+        $this->meta->cadence=false;
+        $this->meta->heartrate=false;
 
         if (! $data=file_get_contents($this->filename)) {
             return false;
@@ -188,46 +192,6 @@ class WW_GPX implements Countable, ArrayAccess{
         return $this->state[$index];
     }
 
-
-    function compact_array ($arr,$elem) {
-
-        # If we should return 0 elements, we will return all elements
-        if ($elem==0) return $arr;
-
-        $total=count($arr);
-
-        # If we should return more elements than exist, we will return all elements
-        if ($elem>$total) return $arr;
-
-        $factor=$total/$elem;
-
-        $dst_arr=array();
-
-        # We always want to keep the first value
-        array_push($dst_arr,$arr[0]);
-
-        # We fill up the intermediate records
-        for ($i=1;$i<$elem;$i++) {
-
-            # new average function for element. I'm not really sure, that this is better....
-#            $start=floor(($i-1)*$factor);
-#            $end=floor(($i+1)*$factor);
-#            $length=$end-$start;
-#            $tarr = array_slice ($arr, $start, $length);
-#            $el=array_sum($tarr)/count($tarr);
-
-            # old "average function" for elements
-            $el=$arr[floor($i*$factor)];
-            array_push($dst_arr,$el);
-
-        }
-
-        # We always want to keep the last value
-        array_push($dst_arr,$arr[count($arr)-1]);
-        
-        return ($dst_arr);
-
-    }
 
     public function setmaxelem ($elem) {
         $this->maxelem=$elem;
@@ -433,8 +397,12 @@ class WW_GPX implements Countable, ArrayAccess{
     }
 
     public function averagecadence() {
-        $data=$this->getall('cadence');
-        return sprintf('%.2f',array_sum($data)/count($data));
+        if ($this->meta->cadence) {
+            $data=$this->getall('cadence');
+            return sprintf('%.2f',array_sum($data)/count($data));
+        } else {
+            return '';
+        }
     }
 
     public function averageelevation() {
