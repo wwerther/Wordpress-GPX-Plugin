@@ -38,19 +38,20 @@ class WW_GPX_INFO {
         if (!is_null($dashstyle)){
             $dashstyle="dashStyle: '$dashstyle',";               
         } else $dashstyle='';
-        return <<<EOT
-        {
-         name: '$seriesname',
-         color: '$seriescolor',
-         yAxis: $seriesaxis,
-         $dashstyle
-         marker: {
-            enabled: false
-         },
-         type: 'spline',
-         data: $series_data_name
-      }
-EOT;
+
+        return "
+            {
+             name: '$seriesname',
+             color: '$seriescolor',
+             yAxis: $seriesaxis,
+             $dashstyle
+             marker: {
+                enabled: false
+             },
+             type: 'spline',
+             data: $series_data_name
+          }
+        ";
 
     }
 
@@ -59,19 +60,19 @@ EOT;
         if ($leftside==false) $opposite='true';
 
         if (!is_null($formatter)){
-            $formatter=<<<EOT
+            $formatter="
             formatter: function() {
                $formatter
             },
-EOT;
+            ";
         } else $formatter='';
 
-        return <<<EOT
-      { // Another Y-Axis No: $axisno
-         labels: {
-            $formatter
-            style: {
-               color: '$axiscolor'
+        return "
+          { // Another Y-Axis No: $axisno
+             labels: {
+                $formatter
+                style: {
+                color: '$axiscolor'
             }
          },
          title: {
@@ -82,7 +83,7 @@ EOT;
          },
          opposite: $opposite
       }
-EOT;
+      ";
     }
 
 
@@ -137,25 +138,26 @@ EOT;
          * Evaluate optional attributes 
          */
 
-        $maxelem=0;
+        $maxelem=51;
         if (array_key_exists('maxelem',$atts)) {
             $maxelem=intval($atts['maxelem']);
         }
 
         
-
+        # Read in the GPX-File
         $gpx=new WW_GPX($atts['href']);
     
-        $gpx->parse();
+        if (! $gpx->parse() ) {
+            /* In Case of errors we abort here*/
+            $directcontent."Error parsing GPX-File</div>";
+        };
 
-        $directcontent.="<!-- GPX-Dump-Information -->\n".$gpx->dump()."\n";
+        # $directcontent.="<!-- GPX-Dump-Information -->\n".$gpx->dump()."\n";
 
         $colors['heartrate']='#AA4643';
         $colors['cadence']='#4572A7';
         $colors['elevation']='#89A54E';
         $colors['speed']='#CACA00';
-
-        $params=array('heartrate','cadence','elevation','speed');
    
         $axistitle['heartrate']='Heartrate (bpm)';
         $axistitle['cadence']='Cadence (rpm)';
@@ -186,6 +188,7 @@ EOT;
         $seriesunit['speed']='km/h';
 
 
+        $params=array('heartrate','cadence','elevation','speed');
         foreach ($params as $param) {
             $axistitle[$param]=$atts['title_'.$param] ? $atts['title_'.$param] : $axistitle[$param];
             $colors[$param]=$atts['color_'.$param] ? $atts['color_'.$param] : $colors[$param];
@@ -195,49 +198,33 @@ EOT;
 
         $enableexport='false';
 
+        # The maximum series that are available
         $process=array('heartrate','cadence','elevation','speed');
-        $process=$atts['display'] ? split(' ',$atts['display']) : $process;
+
+        # If we have defined a display variable we intersect the two arrays and take only the ones that are in both
+        $process=$atts['display'] ? array_intersect($process,split(' ',$atts['display'])) : $process;
+
+        # We remove the entries where we don't have data in our GPX-File
         if (! $gpx->meta->heartrate ) $process=array_diff($process,array('heartrate')); # Remove heartrate graph if we don't have any Meta-information about heartbeats
         if (! $gpx->meta->cadence ) $process=array_diff($process,array('cadence')); # Remove cadence graph if we don't have ayn Meta-information about cadence
 
         $title = $gpx->meta->name;
         $subtitle=strftime('%Y:%m:%d %H:%M',$gpx[0]['time'])."-".strftime('%Y:%m:%d %H:%M',$gpx[-1]['time']);
 
-        $time=$gpx->compact_array($time,$maxelem);
-        $time=array_map('WW_GPX_INFO::formattime', $time);
-
-        $directcontent.='<script type="text/javascript">'."\n 
-        if (! data) {
-            var data=new Array();
-        }
-        data[$divno]=new Array();
+        $directcontent.='<script type="text/javascript">'."
+           if (! data) {
+               var data=new Array();
+           }
+           data[$divno]=new Array();
         ";
         #  $directcontent.=$jsvar['xAxis']."= new Array('".join("','",$time)."');\n";
-
+        #
+        $gpx->setmaxelem($maxelem);
         foreach ($process as $elem) {
-
-            # $data=$gpx->compact_array($gpx->getall($elem),$maxelem);
-
-            $txt=Array();
-            for ($c=0;$c<count($gpx);$c++) {
-                if (! is_null($gpx[$c][$elem])) array_push($txt,"[ ".floor($gpx[$c]['time']*1000).",".$gpx[$c][$elem]."]");
-            }
-
-
-            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$txt ).");\n";
+           $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
         }
-
-        $txt=Array();
-        for ($c=0;$c<count($gpx);$c++) {
-            if (! is_null($gpx[$c][$elem])) array_push($txt,floor($gpx[$c]['time']*1000).":".$gpx[$c]['totaldistance']);
-        }
-        $directcontent.=$jsvar['totaldistance']."={".join(",",$txt )."};\n";
-
-        $txt=Array();
-        for ($c=0;$c<count($gpx);$c++) {
-            if (! is_null($gpx[$c][$elem])) array_push($txt,floor($gpx[$c]['time']*1000).":".$gpx[$c]['totalinterval']);
-        }
-        $directcontent.=$jsvar['totalinterval']."={".join(",",$txt )."};\n";
+        $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
+        $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";
 
         $directcontent.="</script>\n";
 
@@ -246,11 +233,11 @@ EOT;
         $directcontent.=$gpx->dump();
 
         $directcontent.=<<<EOT
-        <div id="${container}chart"></div>
-        <div id="${container}meta">
-        $metadata
+            <div id="${container}chart"></div>
+            <div id="${container}meta">
+            $metadata
+            </div>
         </div>
-</div>
 EOT;
 
         $yaxis=array();
@@ -286,7 +273,9 @@ EOT;
                 return Highcharts.dateFormat('%d.%m %H:%M:%S', this.value);
             },
             rotation: 90,
-            align: 'left'
+            align: 'left',
+            showFirstLabel: true,
+            showLastLabel: true
          }
       }],
       yAxis: [

@@ -35,7 +35,7 @@ class GPX_helper {
 
 class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
 
-protected $data;
+    protected $data;
 
     public function __construct () {
         $this['totalinterval']=0;
@@ -114,6 +114,15 @@ protected $data;
         unset ($this->data[$offset]);
     }
 
+
+    public function return_pair ( $elem ) {
+        return '['.floor($this['time']*1000).','.$this[$elem].']';
+    }
+
+    public function return_assoc ( $elem ) {
+        return floor($this['time']*1000).':'.$this[$elem];
+    }
+
 }
 
 class WW_GPX implements Countable, ArrayAccess{
@@ -125,6 +134,8 @@ class WW_GPX implements Countable, ArrayAccess{
     private $state=null;
 
     private $currenttp=null;
+
+    private $maxelem=0;
 
     public function __construct ($filename) {
         $this->filename=$filename;
@@ -146,7 +157,10 @@ class WW_GPX implements Countable, ArrayAccess{
         $this->track->waypoint=array();
         $this->track->track=array();
         $this->currenttp=null;
-        $data=file_get_contents($this->filename);
+
+        if (! $data=file_get_contents($this->filename)) {
+            return false;
+        }
 
         # First parse the GPX-File
         xml_parse($this->parser, $data);
@@ -215,6 +229,9 @@ class WW_GPX implements Countable, ArrayAccess{
 
     }
 
+    public function setmaxelem ($elem) {
+        $this->maxelem=$elem;
+    }
 
     function tag_open($parser, $tag, $attributes) {
         $tag=strtoupper($tag);
@@ -404,12 +421,8 @@ class WW_GPX implements Countable, ArrayAccess{
 
     public function getall ($needle) {
         $arr=array();
-        foreach ($this->track->waypoint as $point) {
-            if (array_key_exists($needle,$point)) {
-                array_push($arr,$point[$needle]);
-            } else {
-                array_push($arr,'null');
-            }
+        foreach ($this->track->track as $point) {
+            array_push($arr,$point[$needle]);
         } 
         return $arr;
     }
@@ -430,13 +443,13 @@ class WW_GPX implements Countable, ArrayAccess{
     }
 
     public function averagespeed() {
-        $avgspeed=$this->track->waypoint[count($this->track->waypoint)-1]['totaldistance']/abs($this->track->waypoint[0]['time']-$this->track->waypoint[count($this->track->waypoint)-1]['time']);
+        $avgspeed=$this[-1]['totaldistance']/abs($this[0]['time']-$this[-1]['time']);
         $avgspeed*=3.6;
         return sprintf('%.2f',$avgspeed);
     }
 
     public function totaldistance() {
-        return sprintf('%.2f',$this[-1]->totaldistance/1000);
+        return sprintf('%.2f',$this[-1]['totaldistance']/1000);
     }
 
 
@@ -444,6 +457,7 @@ class WW_GPX implements Countable, ArrayAccess{
      * Countable-Interface
      */
     public function count() {
+        if ($this->maxelem>0 and $this->maxelem<count($this->track->track)) return $this->maxelem;
         return count($this->track->track);
     }
 
@@ -451,13 +465,27 @@ class WW_GPX implements Countable, ArrayAccess{
      * ArrayAccess-Interface
      */
     public function offsetExists ( $offset ) {
-        if ($offset>=0) return defined($this->track->track[$offset]);
-        if ($offset<0) return defined($this->track->track[count($this->track->track)-$offset]);
+        if ($this->maxelem>0 and $this->maxelem<count($this->track->track)) {
+            # Wie geht das?
+        } else {
+            if ($offset>=0) return defined($this->track->track[$offset]);
+            if ($offset<0) return defined($this->track->track[count($this->track->track)-$offset]);
+        }
     }
     
     public function offsetGet (  $offset ) {
-        if ($offset>=0)  return $this->track->track[$offset]; 
-        if ($offset<0) return $this->track->track[count($this->track->track)+$offset]; 
+        if ($this->maxelem>0 and $this->maxelem<count($this->track->track)) {
+            $noff=$offset;
+            if ($offset<0) $noff=$this->maxelem+$offset;
+            
+            $factor=count($this->track->track)/$this->maxelem;
+            
+            return $this->track->track[floor($factor*$noff)];
+
+        } else {
+            if ($offset>=0)  return $this->track->track[$offset]; 
+            if ($offset<0) return $this->track->track[count($this->track->track)+$offset]; 
+        }
     }
     
     public function offsetSet ( $offset , $value ) {
@@ -468,7 +496,21 @@ class WW_GPX implements Countable, ArrayAccess{
         unset ($this->track->track[$offset]);
     }
 
+    public function return_pair ($elem) {
+        $arr=array();
+        for ($c=0;$c<count($this);$c++) {
+            if (! is_null($this[$c][$elem])) array_push($arr,$this[$c]->return_pair($elem));
+        }
+        return $arr;
+    }
 
+    public function return_assoc ($elem) {
+        $arr=array();
+        for ($c=0;$c<count($this);$c++) {
+            if (! is_null($this[$c][$elem])) array_push($arr,$this[$c]->return_assoc($elem));
+        }
+        return $arr;
+    }
 
     public function dump () {
         $data="<!--\n";
