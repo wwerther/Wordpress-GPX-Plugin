@@ -457,7 +457,7 @@ class WW_GPX implements Countable, ArrayAccess{
     
     public function offsetGet (  $offset ) {
         if ($offset>=0)  return $this->track->track[$offset]; 
-        if ($offset<0) return $this->track->track[count($this->track->track)-$offset]; 
+        if ($offset<0) return $this->track->track[count($this->track->track)+$offset]; 
     }
     
     public function offsetSet ( $offset , $value ) {

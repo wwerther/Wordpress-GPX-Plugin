@@ -173,6 +173,7 @@ EOT;
         $jsvar['speed']="data[$divno]['speed']";
         $jsvar['xAxis']="data[$divno]['xAxis']";
         $jsvar['totaldistance']="data[$divno]['totaldistance']";
+        $jsvar['totalinterval']="data[$divno]['totalinterval']";
 
         $seriesname['heartrate']='Heartrate';
         $seriesname['cadence']='Cadence';
@@ -200,17 +201,10 @@ EOT;
         if (! $gpx->meta->cadence ) $process=array_diff($process,array('cadence')); # Remove cadence graph if we don't have ayn Meta-information about cadence
 
         $title = $gpx->meta->name;
-        $time=$gpx->getall('time');
-        $subtitle=strftime('%Y:%m:%d %H:%M',$time[0])."-".strftime('%Y:%m:%d %H:%M',$time[count($time)-1]);
+        $subtitle=strftime('%Y:%m:%d %H:%M',$gpx[0]['time'])."-".strftime('%Y:%m:%d %H:%M',$gpx[-1]['time']);
 
         $time=$gpx->compact_array($time,$maxelem);
         $time=array_map('WW_GPX_INFO::formattime', $time);
-
-        $hrs=$gpx->compact_array($gpx->getall('heartrate'),$maxelem);
-        $elev=$gpx->compact_array($gpx->getall('elevation'),$maxelem);
-        $cadence=$gpx->compact_array($gpx->getall('cadence'),$maxelem);
-        $distance=$gpx->compact_array($gpx->getall('distance'),$maxelem);
-        $speed=$gpx->compact_array($gpx->getall('speed'),$maxelem);
 
         $directcontent.='<script type="text/javascript">'."\n 
         if (! data) {
@@ -218,24 +212,32 @@ EOT;
         }
         data[$divno]=new Array();
         ";
+        #  $directcontent.=$jsvar['xAxis']."= new Array('".join("','",$time)."');\n";
 
-        $directcontent.=$jsvar['xAxis']."= new Array('".join("','",$time)."');\n";
-
-        $time=$gpx->compact_array($gpx->getall('time'),$maxelem);
         foreach ($process as $elem) {
-            $data=$gpx->compact_array($gpx->getall($elem),$maxelem);
+
+            # $data=$gpx->compact_array($gpx->getall($elem),$maxelem);
+
             $txt=Array();
             for ($c=0;$c<count($gpx);$c++) {
                 if (! is_null($gpx[$c][$elem])) array_push($txt,"[ ".floor($gpx[$c]['time']*1000).",".$gpx[$c][$elem]."]");
             }
+
+
             $directcontent.=$jsvar[$elem]."= new Array(".join(",",$txt ).");\n";
         }
 
         $txt=Array();
-        for ($c=0;$c<count($data);$c++) {
-            array_push($txt,"'".floor($time[$c]*1000)."':'".$data[$c]."'");
+        for ($c=0;$c<count($gpx);$c++) {
+            if (! is_null($gpx[$c][$elem])) array_push($txt,floor($gpx[$c]['time']*1000).":".$gpx[$c]['totaldistance']);
         }
         $directcontent.=$jsvar['totaldistance']."={".join(",",$txt )."};\n";
+
+        $txt=Array();
+        for ($c=0;$c<count($gpx);$c++) {
+            if (! is_null($gpx[$c][$elem])) array_push($txt,floor($gpx[$c]['time']*1000).":".$gpx[$c]['totalinterval']);
+        }
+        $directcontent.=$jsvar['totalinterval']."={".join(",",$txt )."};\n";
 
         $directcontent.="</script>\n";
 
@@ -281,7 +283,7 @@ EOT;
          type: 'datetime',
          labels: {
             formatter: function() {
-                return Highcharts.dateFormat('%d.%m.%Y %H:%M:%S', this.value);
+                return Highcharts.dateFormat('%d.%m %H:%M:%S', this.value);
             },
             rotation: 90,
             align: 'left'
@@ -289,9 +291,6 @@ EOT;
       }],
       yAxis: [
 EOT;
-#         labels: {
-#            step: 2,
-#         }
 
 $postcontent.=join(',',$yaxis);
 
@@ -302,14 +301,13 @@ $postcontent.=<<<EOT
          crosshairs: true,
          borderColor: '#CDCDCD',
          formatter: function() {
-
             var s = '<b>'+ Highcharts.dateFormat('%d.%m.%Y %H:%M:%S', this.x) +'</b>';
-            
             $.each(this.points, function(i, point) {
                 var unit = { $series_units } [point.series.name];
-                s += '<br/><span style="color:'+point.series.color+'">'+point.x +"-" + point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit;
+                s += '<br/><span style="font-weight:bold;color:'+point.series.color+'">'+ point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit+'';
             });
-            s+= '<br/> Dis:'+$jsvar[totaldistance][this.x]+' m';
+            s+= '<br/><span style="font-weight:bold;">Strecke:</span></td><td>'+Math.round($jsvar[totaldistance][this.x]/1000*100)/100+' km';
+            s+= '<br/><span style="font-weight:bold;">Zeit:</span></td><td>'+Math.round($jsvar[totalinterval][this.x]/3600)+':'+Math.round($jsvar[totalinterval][this.x]/60)%60+':'+$jsvar[totalinterval][this.x]%60+' h';
             return s;
           }
       },
@@ -317,8 +315,7 @@ $postcontent.=<<<EOT
          layout: 'horizontal',
          align: 'center',
          verticalAlign: 'bottom',
-         y:-80,
-         floating: true,
+         floating: false,
          backgroundColor: '#FFFFFF'
       },
       series: [
