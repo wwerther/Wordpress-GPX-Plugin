@@ -14,13 +14,117 @@ define('GPX_RADIUS',6371000.8);
 #define('GPX_RADIUS',6378000.388);
 define('GPX_GRAD2RAD',pi()/180);
 
-class WW_GPX {
+interface Comparable {
+    public function compare(self $compare);
+}
+
+interface Sortable {
+    public static function sort (&$collection);
+    public static function sorter ($a,$b);
+}
+
+
+class GPX_helper {
+    public static function distance($lat1,$lon1,$lat2,$lon2) {
+        if ((($lat1-$lat2)==0) and (($lon1-$lon2)==0)) {
+            return 0;
+        }
+        return acos(sin($lat2*GPX_GRAD2RAD)*sin($lat1*GPX_GRAD2RAD)+cos($lat2*GPX_GRAD2RAD)*cos($lat1*GPX_GRAD2RAD)*cos(($lon2 - $lon1)*GPX_GRAD2RAD));
+    }
+}
+
+class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
+
+protected $data;
+
+    public function __construct () {
+        $this['totalinterval']=0;
+        $this['totaldistance']=0;
+    }
+
+    public function distance (self $trackpoint) {
+        $this['distance']=GPX_helper::distance($this['lat'],$this['lon'],$trackpoint['lat'],$trackpoint['lon'])*GPX_RADIUS;
+        $this['height']=$this['elevation']-$trackpoint['elevation'];
+        $this['totaldistance']=$this['distance']+$trackpoint['totaldistance'];
+        $this['interval']=abs($this['time']-$trackpoint['time']);
+        $this['totalinterval']=$this['interval']+$trackpoint['totalinterval'];
+        if ($this['interval']>0) {
+            $this['speed']=($this['distance']/$this['interval'])*3.6;
+        }
+    }
+
+
+    /**
+     * Compareable-Interface
+     */
+    public function compare (self $compare) {
+        if ($this['time'] == $compare['time']) {
+            return 0;
+        }
+        return ($this['time'] < $compare['time']) ? -1 : 1;
+    }
+
+
+    /**
+     * Sortable-Interface
+     */
+    public static function sorter ($a,$b) {
+        return $a->compare($b);
+    }
+
+    public static function sort (&$collection) {
+        usort ($collection, array(__CLASS__,'sorter'));
+    }
+
+    /**
+     * ArrayAccess-Interface
+     */
+    public function offsetExists ( $offset ) {
+        $offset=strtolower($offset);
+        return array_key_exists($offset,$this->data);
+    }
+    
+    public function offsetGet (  $offset ) {
+        $offset=strtolower($offset);
+        return $this->data[$offset];
+    }
+    
+    public function offsetSet ( $offset , $value ) {
+        $offset=strtolower($offset);
+        switch ($offset) {
+            case 'time' : {
+                $this->data['time']=strtotime($value);
+                break;
+             }
+            case 'lat' : 
+            case 'lon' : 
+            case 'elevation' : 
+            case 'heartrate' : 
+            case 'cadence' : 
+            {
+                $this->data[$offset]=floatval($value);
+            }
+            default: {
+                $this->data[$offset]=$value;
+            }
+        }
+    }
+
+    public function offsetUnset ( $offset ) {
+        unset ($this->data[$offset]);
+    }
+
+}
+
+class WW_GPX implements Countable, ArrayAccess{
 
     private $filename=null;
     private $parser=null;
 
     # The variables needed to keep track of the current state during the SAX-Parse
-    var $state=null;
+    private $state=null;
+
+    private $currenttp=null;
 
     public function __construct ($filename) {
         $this->filename=$filename;
@@ -40,6 +144,8 @@ class WW_GPX {
         $this->state=array('INIT');
         $this->meta=null;
         $this->track->waypoint=array();
+        $this->track->track=array();
+        $this->currenttp=null;
         $data=file_get_contents($this->filename);
 
         # First parse the GPX-File
@@ -48,21 +154,15 @@ class WW_GPX {
         # Now change the sorting order of the waypoints, so they are in a chronologic order
         usort ($this->track->waypoint,'WW_GPX::mysort');
 
+        GPX_TRACKPOINT::sort($this->track->track);
+
         # And now calculate all extended attributes (speed, distance, etc.)
-        for ($walk=0;$walk<count($this->track->waypoint);$walk++) {
+        for ($walk=0;$walk<count($this->track->track);$walk++) {
                 $last=$walk-1;
                 if ($last<0) $last=0;
-                $this->track->waypoint[$walk]['distance']=abs($this->distance($this->track->waypoint[$walk]['lat'],$this->track->waypoint[$walk]['lon'],$this->track->waypoint[$last]['lat'],$this->track->waypoint[$last]['lon'])*GPX_RADIUS);
-                $this->track->waypoint[$walk]['totaldistance']=0;
-                $this->track->waypoint[$walk]['totaldistance']=$this->track->waypoint[$last]['totaldistance']+$this->track->waypoint[$walk]['distance'];
-                $this->track->waypoint[$walk]['interval']=abs($this->track->waypoint[$walk]['time']-$this->track->waypoint[$last]['time']);
-                # in m/s
-		if ($this->track->waypoint[$walk]['interval'] > 0) {
-	                $this->track->waypoint[$walk]['speed']=$this->track->waypoint[$walk]['distance']/$this->track->waypoint[$walk]['interval'];
-	                $this->track->waypoint[$walk]['speed']*=3.6; # -> in km/h
-		} 
-                if (!$this->track->waypoint[$walk]['speed']) $this->track->waypoint[$walk]['speed']=0;
-                #$this->track->waypoint[$this->cursor]['speed']=$this->track->waypoint[$this->cursor]['speed']/16.666; # -> in min/km
+
+                $this->track->track[$walk]->distance($this->track->track[$last]);
+
         }
 
     }
@@ -96,14 +196,14 @@ class WW_GPX {
         for ($i=1;$i<$elem;$i++) {
 
             # new average function for element. I'm not really sure, that this is better....
-            $start=floor(($i-1)*$factor);
-            $end=floor(($i+1)*$factor);
-            $length=$end-$start;
-            $tarr = array_slice ($arr, $start, $length);
-            $el=array_sum($tarr)/count($tarr);
+#            $start=floor(($i-1)*$factor);
+#            $end=floor(($i+1)*$factor);
+#            $length=$end-$start;
+#            $tarr = array_slice ($arr, $start, $length);
+#            $el=array_sum($tarr)/count($tarr);
 
             # old "average function" for elements
-            # $el=$arr[floor($i*$factor)];
+            $el=$arr[floor($i*$factor)];
             array_push($dst_arr,$el);
 
         }
@@ -164,10 +264,11 @@ class WW_GPX {
                 if ($this->state(-1) != 'TRKSEG') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                $data['lat']=floatval($attributes['LAT']);
-                $data['lon']=floatval($attributes['LON']);
-                array_push($this->track->waypoint,$data);
-                $this->cursor=count($this->track->waypoint)-1;
+                $this->currenttp=new GPX_TRACKPOINT();
+                array_push($this->track->track,$this->currenttp);
+                $this->currenttp['lat']=$attributes['LAT'];
+                $this->currenttp['lon']=$attributes['LON'];
+
                 array_push($this->state,$tag);
                 break;
             }
@@ -229,27 +330,27 @@ class WW_GPX {
             }
             case 'ELE': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['elevation']=floatval($cdata);
+                    $this->currenttp['elevation']=$cdata;
                 }
                 break;
             }
             case 'TIME': {
                 if ($this->state(-2) == 'TRKPT') {
                     # We want to store the time information as Unix-Timestamp. This makes calculation of speed etc. a lot easier
-                    $this->track->waypoint[$this->cursor]['time']=strtotime($cdata);
+                    $this->currenttp['time']=$cdata;
                 }
                 break;
             }
             case 'GPXTPX:CAD': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['cadence']=floatval($cdata);
+                    $this->currenttp['cadence']=$cdata;
                     $this->meta->cadence=true;
                 }
                 break;
             }
             case 'GPXTPX:HR': {
                 if ($this->state(-2) == 'TRKPT') {
-                    $this->track->waypoint[$this->cursor]['heartrate']=floatval($cdata);
+                    $this->currenttp['heartrate']=$cdata;
                     $this->meta->heartrate=true;
                 }
                 break;
@@ -270,23 +371,12 @@ class WW_GPX {
             case 'TEXT': 
             case 'NAME': 
             case 'TRK': 
-            case 'TRKSEG': {
-                if (array_pop($this->state)!=$tag) {
-                    throw new Exception ("ungültige Schachtelung");
-                }
-                break;
-            }
-            case 'TRKPT': {
-                if (array_pop($this->state)!=$tag) {
-                    throw new Exception ("ungültige Schachtelung");
-                }
-                break;
-            }
+            case 'TRKSEG': 
+            case 'TRKPT': 
             case 'ELE': 
             case 'TIME': 
             case 'GPXTPX:HR': 
-            case 'GPXTPX:CAD': 
-            {
+            case 'GPXTPX:CAD':  {
                 if (array_pop($this->state)!=$tag) {
                     throw new Exception ("ungültige Schachtelung");
                 }
@@ -346,8 +436,39 @@ class WW_GPX {
     }
 
     public function totaldistance() {
-        return sprintf('%.2f',$this->track->waypoint[count($this->track->waypoint)-1]['totaldistance']/1000);
+        return sprintf('%.2f',$this[-1]->totaldistance/1000);
     }
+
+
+    /**
+     * Countable-Interface
+     */
+    public function count() {
+        return count($this->track->track);
+    }
+
+    /**
+     * ArrayAccess-Interface
+     */
+    public function offsetExists ( $offset ) {
+        if ($offset>=0) return defined($this->track->track[$offset]);
+        if ($offset<0) return defined($this->track->track[count($this->track->track)-$offset]);
+    }
+    
+    public function offsetGet (  $offset ) {
+        if ($offset>=0)  return $this->track->track[$offset]; 
+        if ($offset<0) return $this->track->track[count($this->track->track)-$offset]; 
+    }
+    
+    public function offsetSet ( $offset , $value ) {
+        $this->track->track[$offset]=$value;
+    }
+
+    public function offsetUnset ( $offset ) {
+        unset ($this->track->track[$offset]);
+    }
+
+
 
     public function dump () {
         $data="<!--\n";

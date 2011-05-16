@@ -137,7 +137,7 @@ EOT;
          * Evaluate optional attributes 
          */
 
-        $maxelem=51;
+        $maxelem=0;
         if (array_key_exists('maxelem',$atts)) {
             $maxelem=intval($atts['maxelem']);
         }
@@ -172,6 +172,7 @@ EOT;
         $jsvar['elevation']="data[$divno]['elevation']";
         $jsvar['speed']="data[$divno]['speed']";
         $jsvar['xAxis']="data[$divno]['xAxis']";
+        $jsvar['totaldistance']="data[$divno]['totaldistance']";
 
         $seriesname['heartrate']='Heartrate';
         $seriesname['cadence']='Cadence';
@@ -220,9 +221,21 @@ EOT;
 
         $directcontent.=$jsvar['xAxis']."= new Array('".join("','",$time)."');\n";
 
+        $time=$gpx->compact_array($gpx->getall('time'),$maxelem);
         foreach ($process as $elem) {
-            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->compact_array($gpx->getall($elem),$maxelem)).");\n";
+            $data=$gpx->compact_array($gpx->getall($elem),$maxelem);
+            $txt=Array();
+            for ($c=0;$c<count($gpx);$c++) {
+                if (! is_null($gpx[$c][$elem])) array_push($txt,"[ ".floor($gpx[$c]['time']*1000).",".$gpx[$c][$elem]."]");
+            }
+            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$txt ).");\n";
         }
+
+        $txt=Array();
+        for ($c=0;$c<count($data);$c++) {
+            array_push($txt,"'".floor($time[$c]*1000)."':'".$data[$c]."'");
+        }
+        $directcontent.=$jsvar['totaldistance']."={".join(",",$txt )."};\n";
 
         $directcontent.="</script>\n";
 
@@ -251,12 +264,12 @@ EOT;
         }
 
         $series_units = join (',',$series_units);
-
+#categories: $jsvar[xAxis],
         $postcontent.=<<<EOT
  chart$divno = new Highcharts.Chart({
       chart: {
          renderTo: '${container}chart',
-         zoomType: 'xy'
+         zoomType: 'x'
       },
       title: {
          text: '$title'
@@ -265,15 +278,20 @@ EOT;
          text: '$subtitle'
       },
       xAxis: [{
-         categories: $jsvar[xAxis],
+         type: 'datetime',
          labels: {
-            step: 2,
+            formatter: function() {
+                return Highcharts.dateFormat('%d.%m.%Y %H:%M:%S', this.value);
+            },
             rotation: 90,
             align: 'left'
          }
       }],
       yAxis: [
 EOT;
+#         labels: {
+#            step: 2,
+#         }
 
 $postcontent.=join(',',$yaxis);
 
@@ -285,13 +303,13 @@ $postcontent.=<<<EOT
          borderColor: '#CDCDCD',
          formatter: function() {
 
-            var s = '<b>'+ this.x +'</b>';
+            var s = '<b>'+ Highcharts.dateFormat('%d.%m.%Y %H:%M:%S', this.x) +'</b>';
             
             $.each(this.points, function(i, point) {
                 var unit = { $series_units } [point.series.name];
-                s += '<br/><span style="color:'+point.series.color+'">'+ point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit;
+                s += '<br/><span style="color:'+point.series.color+'">'+point.x +"-" + point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit;
             });
-            
+            s+= '<br/> Dis:'+$jsvar[totaldistance][this.x]+' m';
             return s;
           }
       },
