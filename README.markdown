@@ -73,6 +73,6 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 -------
 Initial version
 
-[screenshot1]: https://github.com/wwerther/Wordpress-GPX-Plugin/blob/master/screenshots/screenshot-1.png "Graph1"
-[screenshot1]: https://github.com/wwerther/Wordpress-GPX-Plugin/blob/master/screenshots/screenshot-2.png "Graph2"
-[screenshot1]: https://github.com/wwerther/Wordpress-GPX-Plugin/blob/master/screenshots/screenshot-3.png "Graph3"
+[screenshot1]: https://github.com/wwerther/Wordpress-GPX-Plugin/raw/master/screenshots/screenshot-1.png "Graph1"
+[screenshot2]: https://github.com/wwerther/Wordpress-GPX-Plugin/raw/master/screenshots/screenshot-2.png "Graph2"
+[screenshot3]: https://github.com/wwerther/Wordpress-GPX-Plugin/raw/master/screenshots/screenshot-3.png "Graph3"
