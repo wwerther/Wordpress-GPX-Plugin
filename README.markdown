@@ -59,7 +59,7 @@ Yes, I'm sorry, there are some known bugs. I had no time to fix or trace them ye
 Yes, there is kind of a roadmap. But the order depends on my time.
 
 * Make the graphs more customizable
-* Include CSS to change layout of the summary, that is currently displayed below the graph
+* Include CSS to change layout of the summary, that is currently displayed below the grap
 * Include a Link to the OSM-module so the Lon/Lat-Information is shown on the map, when hovering over the chart.
 * Include some more error-detection (e.g. File-Not-Found) and change the output then.
 
