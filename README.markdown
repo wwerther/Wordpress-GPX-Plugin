@@ -30,11 +30,11 @@ The graphs are generated with the [Highcharts-API](http://www.highcharts.com/). 
 
 After activating the plugin you can use GPX2Chart with these shortcode:
 
-* \[gpx2chart href="<GPX-File>" \]
+* \[gpx2chart href="\<GPX-File\>" \]
 
 Optional parameters are
 
-* maxelem="<maxelem>"
+* maxelem="\<maxelem\>"
 * color\_heartrate
 * color\_cadence
 * color\_elevation
