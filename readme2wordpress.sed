@@ -10,4 +10,10 @@ s/^##\s\(.\+\)\s##/== \1 ==/
 # Replace Level3 Headlines
 s/^###\s\(.\+\)\s###/= \1 =/
 
-#s/^\(Description\|Installation\|Frequently Asked Questions\|Screenshots\)/== \1 ==/
+# Replace escaped <
+s/\\</</
+
+# Remove Screenshot-Links
+/^\[screenshot.\+/d
+s/!\[.\+]\[screenshot.\+\]//
+

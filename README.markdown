@@ -42,12 +42,9 @@ Optional parameters are
 * title\_speed
 * display="heartrate cadence elevation speed"
 
-
 ## Frequently Asked Questions ##
 
-
 ### Where do I get the development-version? ###
-
 
 I use git for my own development. You can find the Trunk-version on [GitHub](https://github.com/wwerther/Wordpress-GPX-Plugin). It includes also the scripts to update the subversion-directory on wordpress.
 
@@ -68,13 +65,11 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 
 ## Screenshots ##
 
-
 1. ![Graph1][screenshot1] A graph displaying the heartrate, the elevation and the speed of one track
 2. ![Graph2][screenshot2] The Tool-Tip when hovering over the chart shows even more information (time since start, distance since start)
 3. ![Graph3][screenshot3] By clicking on the legend you can deactivate one or graph
 
 ## Changelog ##
-
 
 ### 0.1 ###
 
