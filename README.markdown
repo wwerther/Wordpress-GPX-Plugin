@@ -5,7 +5,7 @@ Donate link: http://wwerther.de/
 Tags: gpx, tracks, charts
 Requires at least: 3.1
 Tested up to: 3.1.2
-Stable tag: 0.2
+Stable tag: 0.1.2
 
 A plugin that generates nice charts from GPX-files. It put's all information about heartrate, cadence, elevation and speed into one chart. 
 
