@@ -38,20 +38,22 @@ class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
     protected $data;
 
     public function __construct () {
-        $this['totalinterval']=0;
-        $this['totaldistance']=0;
-        $this['speed']=null;
-        $this['speed']=null;
+        $this->data['totalinterval']=0;
+        $this->data['totaldistance']=0;
+        $this->data['speed']=null;
+        $this->data['speed']=null;
+        $this->data['cadence']=null;
+        $this->data['heartrate']=null;
     }
 
     public function distance (self $trackpoint) {
-        $this['distance']=GPX_helper::distance($this['lat'],$this['lon'],$trackpoint['lat'],$trackpoint['lon'])*GPX_RADIUS;
-        $this['height']=$this['elevation']-$trackpoint['elevation'];
-        $this['totaldistance']=$this['distance']+$trackpoint['totaldistance'];
-        $this['interval']=abs($this['time']-$trackpoint['time']);
-        $this['totalinterval']=$this['interval']+$trackpoint['totalinterval'];
-        if ($this['interval']>0) {
-            $this['speed']=($this['distance']/$this['interval'])*3.6;
+        $this->data['distance']=GPX_helper::distance($this->data['lat'],$this->data['lon'],$trackpoint['lat'],$trackpoint['lon'])*GPX_RADIUS;
+        $this->data['height']=$this->data['elevation']-$trackpoint['elevation'];
+        $this->data['totaldistance']=$this->data['distance']+$trackpoint['totaldistance'];
+        $this->data['interval']=abs($this->data['time']-$trackpoint['time']);
+        $this->data['totalinterval']=$this->data['interval']+$trackpoint['totalinterval'];
+        if ($this->data['interval']>0) {
+            $this->data['speed']=($this->data['distance']/$this->data['interval'])*3.6;
         }
     }
 
@@ -105,6 +107,7 @@ class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
             case 'cadence' : 
             {
                 $this->data[$offset]=floatval($value);
+                break;
             }
             default: {
                 $this->data[$offset]=$value;
@@ -118,11 +121,15 @@ class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
 
 
     public function return_pair ( $elem ) {
-        return '['.floor($this['time']*1000).','.$this[$elem].']';
+        if (is_null($this->data[$elem])){
+            return '['.floor($this->data['time']*1000).', null ]';
+        } else {
+            return '['.floor($this->data['time']*1000).','.$this->data[$elem].']';
+        }
     }
 
     public function return_assoc ( $elem ) {
-        return floor($this['time']*1000).':'.$this[$elem];
+        return floor($this->data['time']*1000).':'.$this->data[$elem];
     }
 
 }
@@ -467,7 +474,7 @@ class WW_GPX implements Countable, ArrayAccess{
     public function return_pair ($elem) {
         $arr=array();
         for ($c=0;$c<count($this);$c++) {
-            if (! is_null($this[$c][$elem])) array_push($arr,$this[$c]->return_pair($elem));
+            array_push($arr,$this[$c]->return_pair($elem));
         }
         return $arr;
     }
@@ -475,7 +482,7 @@ class WW_GPX implements Countable, ArrayAccess{
     public function return_assoc ($elem) {
         $arr=array();
         for ($c=0;$c<count($this);$c++) {
-            if (! is_null($this[$c][$elem])) array_push($arr,$this[$c]->return_assoc($elem));
+            array_push($arr,$this[$c]->return_assoc($elem));
         }
         return $arr;
     }

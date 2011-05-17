@@ -120,7 +120,7 @@ class WW_GPX_INFO {
         $directcontent.="<!-- ATTRIBUTES:\n".var_export ($atts,true)."\n -->\n";
 
 
-        $directcontent.='<div id="'.$container.'">'."\n";
+        $directcontent.='<div id="'.$container.'" style="width:90%;">'."\n";
 
         /*
          * Evaluate mandatory attributes
@@ -176,6 +176,8 @@ class WW_GPX_INFO {
         $jsvar['xAxis']="data[$divno]['xAxis']";
         $jsvar['totaldistance']="data[$divno]['totaldistance']";
         $jsvar['totalinterval']="data[$divno]['totalinterval']";
+        $jsvar['lat']="data[$divno]['lat']";
+        $jsvar['lon']="data[$divno]['lon']";
 
         $seriesname['heartrate']='Heartrate';
         $seriesname['cadence']='Cadence';
@@ -209,7 +211,7 @@ class WW_GPX_INFO {
         if (! $gpx->meta->cadence ) $process=array_diff($process,array('cadence')); # Remove cadence graph if we don't have ayn Meta-information about cadence
 
         $title = $gpx->meta->name;
-        $subtitle=strftime('%Y:%m:%d %H:%M',$gpx[0]['time'])."-".strftime('%Y:%m:%d %H:%M',$gpx[-1]['time']);
+        $subtitle=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
 
         $directcontent.='<script type="text/javascript">'."
            if (! data) {
@@ -226,6 +228,9 @@ class WW_GPX_INFO {
         $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
         $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";
 
+        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
+        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
+
         $directcontent.="</script>\n";
 
         $metadata="Spd: ".$gpx->averagespeed()."km/h HR: ".$gpx->averageheartrate()."bpm Total: ".$gpx->totaldistance()." km";
@@ -237,6 +242,7 @@ class WW_GPX_INFO {
             <div id="${container}meta">
             $metadata
             </div>
+            <div id="${container}debug"> </div>
         </div>
 EOT;
 
@@ -255,7 +261,9 @@ EOT;
         $series_units = join (',',$series_units);
 #categories: $jsvar[xAxis],
         $postcontent.=<<<EOT
- chart$divno = new Highcharts.Chart({
+var \$${container}debug = $('#${container}debug');
+
+chart$divno = new Highcharts.Chart({
       chart: {
          renderTo: '${container}chart',
          zoomType: 'x'
@@ -296,9 +304,39 @@ $postcontent.=<<<EOT
                 s += '<br/><span style="font-weight:bold;color:'+point.series.color+'">'+ point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit+'';
             });
             s+= '<br/><span style="font-weight:bold;">Strecke:</span></td><td>'+Math.round($jsvar[totaldistance][this.x]/1000*100)/100+' km';
-            s+= '<br/><span style="font-weight:bold;">Zeit:</span></td><td>'+Math.round($jsvar[totalinterval][this.x]/3600)+':'+Math.round($jsvar[totalinterval][this.x]/60)%60+':'+$jsvar[totalinterval][this.x]%60+' h';
+            s+= '<br/><span style="font-weight:bold;">Zeit:</span></td><td>'+Math.floor($jsvar[totalinterval][this.x]/3600)+':'+Math.floor($jsvar[totalinterval][this.x]/60)%60+':'+$jsvar[totalinterval][this.x]%60+' h';
             return s;
           }
+      },
+      plotOptions: {
+         area: {
+            fillOpacity: 0.5
+         },
+         series: {
+            point: {
+                events: {
+                    mouseOver: function() {
+                        var lat=$jsvar[lat][this.x];
+                        var lon=$jsvar[lon][this.x];
+                        \$${container}debug.html('Lat: '+ lat +', Lon: '+ lon);
+/*
+                        markers=map.getLayersByName('Marker')[0];
+                        var ll = new OpenLayers.LonLat(lon,lat).transform(map.displayProjection, map.projection);
+                        markers.clearMarkers();
+                        var size = new OpenLayers.Size(21,25);
+                        var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
+                        var icon = new OpenLayers.Icon('http://wwerther.de/wp-content/plugins/osm/icons/marker_blue.png', size, offset);
+                        markers.addMarker(new OpenLayers.Marker(ll,icon));
+*/
+                    }
+                }
+            },
+            events: {
+                mouseOut: function() {                        
+                    \$reporting.empty();
+                }
+            }
+        }
       },
       legend: {
          layout: 'horizontal',
@@ -354,7 +392,7 @@ if (! function_exists('add_shortcode')) {
         function add_shortcode ($shortcode,$function) {
                 echo "Only Test-Case: $shortcode: $function";
 
-                print WW_GPX_INFO::handle_shortcode(array('href'=>'http://sonne/heartrate.gpx'),null,'');
+                print WW_GPX_INFO::handle_shortcode(array('href'=>'http://sonne/cadence.gpx','maxelem'=>0),null,'');
                 print WW_GPX_INFO::add_script();
         };
 }
