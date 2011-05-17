@@ -11,6 +11,9 @@ fi
 sed -i -e "s/^\\(Stable tag:\\).\+/\1 $TAG/" README.markdown
 
 git commit -a -m "Prepare to tag $TAG"
+git push
 git tag -a $TAG -m "Tag to $TAG"
+git push --tags
 
 ./updatewordpress.sh $TAG
+
