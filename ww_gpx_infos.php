@@ -14,6 +14,9 @@ Max WP Version: 3.1.2
 
 
 require_once(dirname(__FILE__).'/ww_gpx.php');
+define('WW_GPX_INFO_SHORTCODE','gpx2chart');
+define('WW_GPX_INFO_SHORTCODE2','wwgpxinfo');
+
 
 class WW_GPX_INFO {
 
@@ -23,7 +26,8 @@ class WW_GPX_INFO {
     static $foot_script_content='';
  
 	function init() {
-		add_shortcode('wwgpxinfo', array(__CLASS__, 'handle_shortcode'));
+		add_shortcode(WW_GPX_INFO_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
+		add_shortcode(WW_GPX_INFO_SHORTCODE2, array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
         self::$foot_script_content='<script type="text/javascript">$=jQuery;';

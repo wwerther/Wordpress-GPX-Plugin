@@ -28,6 +28,23 @@ The graphs are generated with the [Highcharts-API](http://www.highcharts.com/). 
 1. Upload the gpx2chart folder to your wordpress plugin directory
 1. Activate the plugin through the 'Plugins' menu in WordPress
 
+After activating the plugin you can use GPX2Chart with these shortcode:
+
+* \[gpx2chart href="<GPX-File>" \]
+
+Optional parameters are
+* maxelem="<maxelem>"
+* color\_heartrate
+* color\_cadence
+* color\_elevation
+* color\_speed
+* title\_heartrate
+* title\_cadence
+* title\_elevation
+* title\_speed
+* display="heartrate cadence elevation speed"
+
+
 == Frequently Asked Questions ==
 ================================
 
