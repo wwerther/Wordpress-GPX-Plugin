@@ -171,7 +171,7 @@ class WW_GPX implements Countable, ArrayAccess{
         $this->meta->cadence=false;
         $this->meta->heartrate=false;
 
-        if (! $data=file_get_contents($this->filename)) {
+        if (! $data=@file_get_contents($this->filename)) {
             return false;
         }
 
@@ -187,11 +187,10 @@ class WW_GPX implements Countable, ArrayAccess{
         for ($walk=0;$walk<count($this->track->track);$walk++) {
                 $last=$walk-1;
                 if ($last<0) $last=0;
-
                 $this->track->track[$walk]->distance($this->track->track[$last]);
 
         }
-
+        return true;
     }
 
     private function state($index) {
@@ -487,6 +486,13 @@ class WW_GPX implements Countable, ArrayAccess{
             array_push($arr,$this[$c]->return_assoc($elem));
         }
         return $arr;
+    }
+
+    public function getunavailable () {
+        $unavailable=array();
+        if (! $this->meta->heartrate) array_push($unavailable,'heartrate');
+        if (! $this->meta->cadence) array_push($unavailable,'cadence');
+        return $unavailable;
     }
 
     public function dump () {

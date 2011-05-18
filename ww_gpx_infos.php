@@ -4,7 +4,7 @@
 Plugin Name: gpx2chart
 Plugin URI: http://wordpress.org/extend/plugins/gpx2chart/
 Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files
-Version: 0.1.4
+Version: 0.1.5
 Author: Walter Werther
 Author URI: http://wwerther.de/
 Update Server: http://downloads.wordpress.org/plugin
@@ -22,12 +22,21 @@ class GPX2CHART {
 
 	static $add_script;
     static $foot_script_content='';
+
+    static $debug=false;
+
+    static function debug ($text,$headline='') {
+        if (self::$debug) {
+            return "\n<!-- gpx2chart $headline\n$text\n gpx2chart -->\n";
+        }
+        return '';
+    }
  
 	function init() {
 		add_shortcode(GPX2CHART_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
-        self::$foot_script_content='<script type="text/javascript">$=jQuery;';
+        self::$foot_script_content='<script type="text/javascript">';
 
         wp_register_script('highcharts', plugins_url('/js/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
 		wp_register_script('highchartsexport', plugins_url('/js/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
@@ -35,11 +44,9 @@ class GPX2CHART {
         add_action('wp_footer', array(__CLASS__, 'add_script'));
 	}
 
-    function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null) {
-        if (!is_null($dashstyle)){
-            $dashstyle="dashStyle: '$dashstyle',";               
-        } else $dashstyle='';
-
+    function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
+        $dashstyle=is_null($dashstyle)? '' : "dashStyle: '$dashstyle',";               
+        $seriestype=is_null($seriestype)? "type: 'spline'," : "type: '$seriestype',";               
         return "
             {
              name: '$seriesname',
@@ -49,7 +56,7 @@ class GPX2CHART {
              marker: {
                 enabled: false
              },
-             type: 'spline',
+             $seriestype
              data: $series_data_name
           }
         ";
@@ -101,59 +108,42 @@ class GPX2CHART {
         // $atts    ::= array of attributes
         // $content ::= text within enclosing form of shortcode element
         // $code    ::= the shortcode found, when == callback name
-        // examples: [my-shortcode]
-        //           [my-shortcode/]
-        //           [my-shortcode foo='bar']
-        //           [my-shortcode foo='bar'/]
-        //           [my-shortcode]content[/my-shortcode]
-        //           [my-shortcode foo='bar']content[/my-shortcode]
-        //           [wwgpxinfo href="<GPX-Source>" (maxelem="51")     ]
+        //           [gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="heartrate cadence distance speed") (display="heartrate cadence elevation speed")]
     	self::$add_script++;
+
+        /* Check if we are in "debug mode". Create a more verbose output then */
+        self::$debug=in_array('debug',$atts);
 
         $divno=self::$add_script;
 
-        $error=0;
+        $error=array();
         $container=self::$container_name.$divno;
-        $postcontent='';
         $directcontent='';
+        $postcontent='';
 
-
-        $directcontent.="<!-- ATTRIBUTES:\n".var_export ($atts,true)."\n -->\n";
-
-
-        $directcontent.='<div id="'.$container.'" style="width:90%;">'."\n";
+        $directcontent.=self::debug(var_export ($atts,true),"Attributes");
 
         /*
          * Evaluate mandatory attributes
          */
-        if (! array_key_exists('href',$atts)) {
-            $directcontent.="Attribute HREF is missing<br/>";
-            $error++;
-        }
-
-        /* In Case of errors we abort here*/
-        if ($error>0) return $directcontent."</div>";
-
+        if (! array_key_exists('href',$atts)) array_push($error,"Attribute HREF is missing");
 
         /* 
          * Evaluate optional attributes 
          */
+        $maxelem=array_key_exists('maxelem',$atts) ? intval($atts['maxelem']) : 51;
+        $width=array_key_exists('width',$atts) ? $atts['width'] : '90%';
 
-        $maxelem=51;
-        if (array_key_exists('maxelem',$atts)) {
-            $maxelem=intval($atts['maxelem']);
-        }
+        /* Create the master container */
+        $directcontent.='<div id="'.$container.'" class="gpx2chart" style="width:'.$width.'"'.">\n";
 
-        
-        # Read in the GPX-File
+        # read in the GPX-file
         $gpx=new WW_GPX($atts['href']);
-    
-        if (! $gpx->parse() ) {
-            /* In Case of errors we abort here*/
-            $directcontent."Error parsing GPX-File</div>";
-        };
+        # try to parse the XML only if we don't have errors yet
+        if ((count($error)==0) and (! $gpx->parse())) array_push($error,"Error parsing GPX-File");
 
-        # $directcontent.="<!-- GPX-Dump-Information -->\n".$gpx->dump()."\n";
+        /* In case of errors we abort here */
+        if (count($error)>0) return $directcontent.join("<br/>\n",$error)."</div>";
 
         $colors['heartrate']='#AA4643';
         $colors['cadence']='#4572A7';
@@ -184,32 +174,40 @@ class GPX2CHART {
         $seriesname['cadence']='Cadence';
         $seriesname['elevation']='Elevation';
         $seriesname['speed']='Speed';
+        $seriesname['distance']='Distance';
+        $seriesname['time']='Time';
 
         $seriesunit['heartrate']='bpm';
         $seriesunit['cadence']='rpm';
         $seriesunit['elevation']='m';
         $seriesunit['speed']='km/h';
+        $seriesunit['distance']='km';
+        $seriesunit['time']='h';
 
+        $dashstyle['heartrate']='shortdot';
+        $seriestype['elevation']='areaspline';
 
         $params=array('heartrate','cadence','elevation','speed');
         foreach ($params as $param) {
-            $axistitle[$param]=$atts['title_'.$param] ? $atts['title_'.$param] : $axistitle[$param];
-            $colors[$param]=$atts['color_'.$param] ? $atts['color_'.$param] : $colors[$param];
+            $axistitle[$param]=array_key_exists('title_'.$param,$atts) ? $atts['title_'.$param] : $axistitle[$param];
+            $colors[$param]=array_key_exists('color_'.$param,$atts) ? $atts['color_'.$param] : $colors[$param];
+            $dashstyle[$param]=array_key_exists('dashstyle_'.$param,$atts) ? $atts['dashstyle_'.$param] : $dashstyle[$param];
+            $seriestype[$param]=array_key_exists('seriestype_'.$param,$atts) ? $atts['seriestype_'.$param] : $seriestype[$param];
         }
-
-        $dashstyle['heartrate']='shortdot';
 
         $enableexport='false';
 
         # The maximum series that are available
         $process=array('heartrate','cadence','elevation','speed');
+        $metadata=array('heartrate','cadence','distance','speed');
 
         # If we have defined a display variable we intersect the two arrays and take only the ones that are in both
         $process=$atts['display'] ? array_intersect($process,split(' ',$atts['display'])) : $process;
+        $metadata=$atts['metadata'] ? array_intersect($metadata,split(' ',$atts['metadata'])) : $metadata;
 
         # We remove the entries where we don't have data in our GPX-File
-        if (! $gpx->meta->heartrate ) $process=array_diff($process,array('heartrate')); # Remove heartrate graph if we don't have any Meta-information about heartbeats
-        if (! $gpx->meta->cadence ) $process=array_diff($process,array('cadence')); # Remove cadence graph if we don't have ayn Meta-information about cadence
+        $process=array_diff($process,$gpx->getunavailable());
+        $metadata=array_diff($metadata,$gpx->getunavailable());
 
         $title = $gpx->meta->name;
         $subtitle=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
@@ -220,8 +218,7 @@ class GPX2CHART {
            }
            data[$divno]=new Array();
         ";
-        #  $directcontent.=$jsvar['xAxis']."= new Array('".join("','",$time)."');\n";
-        #
+
         $gpx->setmaxelem($maxelem);
         foreach ($process as $elem) {
            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
@@ -234,35 +231,72 @@ class GPX2CHART {
 
         $directcontent.="</script>\n";
 
-        $metadata="Spd: ".$gpx->averagespeed()."km/h HR: ".$gpx->averageheartrate()."bpm Total: ".$gpx->totaldistance()." km";
-
-        $directcontent.=$gpx->dump();
+        $met=array();
+        foreach ($metadata as $elem) {
+            $text=$seriesname[$elem].": ";
+            switch ($elem) {
+                case 'heartrate': {
+                    $text.=$gpx->averageheartrate();
+                    break;
+                }
+                case 'cadence': {
+                    $text.=$gpx->averagecadence();
+                    break;
+                }
+                case 'speed': {
+                    $text.=$gpx->averagespeed();
+                    break;
+                }
+                case 'distance': {
+                    $text.=$gpx->totaldistance();
+                    break;
+                }
+            }
+            $text.=" ".$seriesunit[$elem];
+            array_push($met,$text);
+        }
+        $metadata=join(' ',$met);
 
         $directcontent.=<<<EOT
-            <div id="${container}chart"></div>
-            <div id="${container}meta">
+            <div id="${container}chart" class="gpx2chartchart"></div>
+            <div id="${container}meta" class="gpx2chartmeta">
             $metadata
             </div>
-            <div id="${container}debug"> </div>
+            <div id="${container}debug" class="gpx2chartdebug" style="display:none;"> </div>
         </div>
 EOT;
 
         $yaxis=array();
         $series=array();
         $series_units=array();
+        $series_names=array();
 
         $axisno=0;
         foreach ($process as $elem) {
             array_push($yaxis,self::create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno));
-            array_push($series,self::create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem]));
+            array_push($series,self::create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
             array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
             $axisno++;
         }
 
+        # We need additional entries for names and units
+        foreach (array('time','distance') as $elem) {
+            array_push($series_names,"'".$elem."':'".$seriesname[$elem]."'");
+            array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
+        }
+
         $series_units = join (',',$series_units);
+        $series_names = join (',',$series_names);
 #categories: $jsvar[xAxis],
         $postcontent.=<<<EOT
-var \$${container}debug = $('#${container}debug');
+var \$${container}debug = jQuery('#${container}debug');
+
+/*
+ * console.log("Log");
+ * console.error("Err");
+ * console.warn("War");
+ * console.debug("Deb"); 
+ */
 
 chart$divno = new Highcharts.Chart({
       chart: {
@@ -300,12 +334,16 @@ $postcontent.=<<<EOT
          borderColor: '#CDCDCD',
          formatter: function() {
             var s = '<b>'+ Highcharts.dateFormat('%d.%m.%Y %H:%M:%S', this.x) +'</b>';
-            $.each(this.points, function(i, point) {
+            jQuery.each(this.points, function(i, point) {
                 var unit = { $series_units } [point.series.name];
                 s += '<br/><span style="font-weight:bold;color:'+point.series.color+'">'+ point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit+'';
             });
-            s+= '<br/><span style="font-weight:bold;">Strecke:</span></td><td>'+Math.round($jsvar[totaldistance][this.x]/1000*100)/100+' km';
-            s+= '<br/><span style="font-weight:bold;">Zeit:</span></td><td>'+Math.floor($jsvar[totalinterval][this.x]/3600)+':'+Math.floor($jsvar[totalinterval][this.x]/60)%60+':'+$jsvar[totalinterval][this.x]%60+' h';
+            var name = { $series_names }['distance'];
+            var unit = { $series_units }[name];
+            s+= '<br/><span style="font-weight:bold;">'+name+':</span></td><td>'+Math.round($jsvar[totaldistance][this.x]/1000*100)/100+unit;
+            var name = { $series_names }['time'];
+            var unit = { $series_units }[name];
+            s+= '<br/><span style="font-weight:bold;">'+name+':</span></td><td>'+Math.floor($jsvar[totalinterval][this.x]/3600)+':'+Math.floor($jsvar[totalinterval][this.x]/60)%60+':'+$jsvar[totalinterval][this.x]%60+unit;
             return s;
           }
       },
@@ -334,7 +372,7 @@ $postcontent.=<<<EOT
             },
             events: {
                 mouseOut: function() {                        
-                    \$reporting.empty();
+                    \$${container}debug.empty();
                 }
             }
         }

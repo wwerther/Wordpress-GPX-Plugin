@@ -5,7 +5,7 @@ Donate link: http://wwerther.de/
 Tags: gpx, tracks, charts
 Requires at least: 3.1
 Tested up to: 3.1.2
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 
 A plugin that generates nice charts from GPX-files. It put's all information about heartrate, cadence, elevation and speed into one chart. 
 
@@ -30,17 +30,16 @@ After activating the plugin you can use GPX2Chart with these shortcode:
 * \[gpx2chart href="\<GPX-File\>" \]
 
 Optional parameters are
+gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="heartrate cadence distance speed") (display="heartrate cadence elevation speed")
 
 * maxelem="\<maxelem\>"
-* color\_heartrate
-* color\_cadence
-* color\_elevation
-* color\_speed
-* title\_heartrate
-* title\_cadence
-* title\_elevation
-* title\_speed
+* width	\-\> The width of the main-container. Can be specified in px or %. Will be directly put into the element-style;
+* color\_(heartrate|cadence|elevation|speed) = ('#AA4643', '#4572A7', '#89A54E', '#CACA00' )
+* title\_(heartrate|cadence|elevation|speed)
 * display="heartrate cadence elevation speed"
+* dashstyle\_(heartrate|cadence|elevation|speed) = (Solid, ShortDash, ShortDot, ShortDashDot, ShortDashDotDot, Dot, Dash, LongDash, DashDot, LongDashDot, LongDashDotDot) defaults to solid, except heartrate=shortdot
+* seriestype\_(heartrate|cadence|elevation|speed) = (area, areaspline, bar, column, line, pie, scatter, spline) defaults to spline, except for elevation=areaspline
+* debug \-\> If this is present the PHP-module put some more information into the HTML-file
 
 ## Frequently Asked Questions ##
 
@@ -71,6 +70,15 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 
 ## Changelog ##
 
+### 0.1.5 ###
+
+* improved error-handling if href is not defined
+* improved error-handling if file could not be opened
+* additional parameters are now available (metadata, display, width, debug)
+* removed the need for the $-object. I now use jQuery directly
+* dashstyle and seriestype are now in variables
+* Introduced CSS-Classes gpx2chart, gpx2chartchart, gpx2chartmeta, gpx2chartdebug. They are not filled with life yet.
+
 ### 0.1.4 ###
 
 * Seems like some interfaces won't work on host-europe. Interfaces are removed now
@@ -88,6 +96,10 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 * Initial version of this plugin
 
 ## Upgrade Notice ##
+
+### 0.1.5 ###
+
+Improved error-handling
 
 ### 0.1 ###
 
