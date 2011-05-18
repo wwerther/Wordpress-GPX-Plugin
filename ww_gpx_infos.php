@@ -1,33 +1,30 @@
 <?php
 // vim: set ts=4 et nu ai syntax=php indentexpr= :vim
 /*
-Plugin Name: GPX Infos
-Plugin URI: http://wwerther.de/
-Description: GPX-Infos - a WP-Plugin for extracting some nice graphs from GPX-Files
-Version: 0.1
+Plugin Name: gpx2chart
+Plugin URI: http://wordpress.org/extend/plugins/gpx2chart/
+Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files
+Version: 0.1.2
 Author: Walter Werther
 Author URI: http://wwerther.de/
-Update Server: http://wwerther.de/wp-content/download/wp/
+Update Server: http://downloads.wordpress.org/plugin
 Min WP Version: 3.1.2
 Max WP Version: 3.1.2
  */
 
 
 require_once(dirname(__FILE__).'/ww_gpx.php');
-define('WW_GPX_INFO_SHORTCODE','gpx2chart');
-define('WW_GPX_INFO_SHORTCODE2','wwgpxinfo');
+define('GPX2CHART_SHORTCODE','gpx2chart');
 
+class GPX2CHART {
 
-class WW_GPX_INFO {
-
-    static $container_name='WW_GPX_CONTAINER';
+    static $container_name='GPX2CHART_CONTAINER';
 
 	static $add_script;
     static $foot_script_content='';
  
 	function init() {
-		add_shortcode(WW_GPX_INFO_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
-		add_shortcode(WW_GPX_INFO_SHORTCODE2, array(__CLASS__, 'handle_shortcode'));
+		add_shortcode(GPX2CHART_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
         self::$foot_script_content='<script type="text/javascript">$=jQuery;';
@@ -380,9 +377,11 @@ EOT;
 }
  
 /*
- * I just define a small test, wether or not the add_shortcode function 
+ * I just define a small test-scenario, wether or not the add_shortcode function 
  * already exists. This allows me to do a compilation test of this file
  * without the full overhead of wordpress
+ * This is used when I do a git commit to guarantee, that the code will compile
+ * properly
  */
 if (! function_exists('add_shortcode')) {
         function wp_register_script() {
@@ -396,12 +395,12 @@ if (! function_exists('add_shortcode')) {
         function add_shortcode ($shortcode,$function) {
                 echo "Only Test-Case: $shortcode: $function";
 
-                print WW_GPX_INFO::handle_shortcode(array('href'=>'http://sonne/cadence.gpx','maxelem'=>0),null,'');
-                print WW_GPX_INFO::add_script();
+                print GPX2CHART::handle_shortcode(array('href'=>'http://sonne/cadence.gpx','maxelem'=>0),null,'');
+                print GPX2CHART::add_script();
         };
 }
 
 
-WW_GPX_INFO::init();
+GPX2CHART::init();
 
 ?>
