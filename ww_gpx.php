@@ -14,6 +14,7 @@ define('GPX_RADIUS',6371000.8);
 #define('GPX_RADIUS',6378000.388);
 define('GPX_GRAD2RAD',pi()/180);
 
+/* These interfaces seem to cause problems on my host-europe installation. Anyway they are not really necessary
 interface Comparable {
     public function compare(self $compare);
 }
@@ -22,7 +23,7 @@ interface Sortable {
     public static function sort (&$collection);
     public static function sorter ($a,$b);
 }
-
+*/
 
 class GPX_helper {
     public static function distance($lat1,$lon1,$lat2,$lon2) {
@@ -33,7 +34,8 @@ class GPX_helper {
     }
 }
 
-class GPX_TRACKPOINT implements Comparable,Sortable,ArrayAccess {
+# Comparable,Sortable
+class GPX_TRACKPOINT implements ArrayAccess {
 
     protected $data;
 
