@@ -29,8 +29,8 @@ class GPX2CHART {
         self::$add_script=0;
         self::$foot_script_content='<script type="text/javascript">$=jQuery;';
 
-        wp_register_script('highcharts', plugins_url().'/ww_gpx_infos'.'/js/highcharts.js', array('jquery'), '2.1.4', false);
-		wp_register_script('highchartsexport', plugins_url().'/ww_gpx_infos'.'/js/modules/exporting.js', array('jquery','highcharts'), '2.1.4', false);
+        wp_register_script('highcharts', plugins_url('/js/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
+		wp_register_script('highchartsexport', plugins_url('/js/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
         add_action('wp_footer', array(__CLASS__, 'add_script'));
 	}
