@@ -15,5 +15,5 @@ git push
 git tag -a $TAG -m "Tag to $TAG"
 git push --tags
 
-./updatewordpress.sh $TAG
+# ./updatewordpress.sh $TAG
 
