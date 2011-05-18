@@ -9,6 +9,7 @@ if [ -z "$TAG" ]; then
 fi
 
 sed -i -e "s/^\\(Stable tag:\\).\+/\1 $TAG/" README.markdown
+sed -i -e "s/^\\(Version:\\).\+/\1 $TAG/" ww_gpx_infos.php
 
 git commit -a -m "Prepare to tag $TAG"
 git push
