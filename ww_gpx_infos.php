@@ -46,12 +46,14 @@ class GPX2CHART {
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
+            wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
         } else {
             wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
     		wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
+            wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
 
         }
 
@@ -440,8 +442,9 @@ EOT;
 
     $postcontent.=<<<EOT
            ],
-           legend: { position: 'sw' }
-    };
+           legend: { show: false, position: 'sw' },
+           crosshair: { mode: 'x' }
+};
 EOT;
 
     $postcontent.="var flotdata$divno=[\n";
@@ -463,6 +466,7 @@ EOT;
         	wp_print_scripts('highchartsexport');
 
             wp_print_scripts('flot');
+            wp_print_scripts('flotcross');
         	wp_print_scripts('excanvas');
 
             print self::$foot_script_content;
