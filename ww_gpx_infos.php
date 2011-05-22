@@ -22,7 +22,6 @@ class GPX2CHART {
     static $container_name='GPX2CHART_CONTAINER';
 
 	static $add_script;
-    static $foot_script_content='';
 
     static $debug=false;
 
@@ -37,19 +36,14 @@ class GPX2CHART {
 		add_shortcode(GPX2CHART_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
-        self::$foot_script_content='<script type="text/javascript">';
 
 
         if (self::$debug) {
-            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
-    		wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
         } else {
-            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
-    		wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
@@ -57,58 +51,7 @@ class GPX2CHART {
 
         }
 
-        add_action('wp_footer', array(__CLASS__, 'add_script'));
 	}
-
-	public static function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
-        $dashstyle=is_null($dashstyle)? '' : "dashStyle: '$dashstyle',";               
-        $seriestype=is_null($seriestype)? "type: 'spline'," : "type: '$seriestype',";               
-        return "
-            {
-             name: '$seriesname',
-             color: '$seriescolor',
-             yAxis: $seriesaxis,
-             $dashstyle
-             marker: {
-                enabled: false
-             },
-             $seriestype
-             data: $series_data_name
-          }
-        ";
-
-    }
-
- 	public static function create_axis($axistitle,$axiscolor,$leftside=true,$axisno=0,$formatter=null) {
-        $opposite='false';
-        if ($leftside==false) $opposite='true';
-
-        if (!is_null($formatter)){
-            $formatter="
-            formatter: function() {
-               $formatter
-            },
-            ";
-        } else $formatter='';
-
-        return "
-          { // Another Y-Axis No: $axisno
-             labels: {
-                $formatter
-                style: {
-                color: '$axiscolor'
-            }
-         },
-         title: {
-            text: '$axistitle',
-            style: {
-               color: '$axiscolor'
-            }
-         },
-         opposite: $opposite
-      }
-      ";
-    }
 
 
 	public static function formattime($value) {
@@ -126,6 +69,9 @@ class GPX2CHART {
         // $code    ::= the shortcode found, when == callback name
         //           [gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="heartrate cadence distance speed") (display="heartrate cadence elevation speed")]
     	self::$add_script++;
+            wp_print_scripts('flot');
+            wp_print_scripts('flotcross');
+        	wp_print_scripts('excanvas');
 
         /* Check if we are in "debug mode". Create a more verbose output then */
         self::$debug=in_array('debug',$atts);
@@ -240,6 +186,7 @@ class GPX2CHART {
         ";
 
         $gpx->setmaxelem($maxelem);
+#       $gpx->setmaxelem(0);
         foreach ($process as $elem) {
            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
         }
@@ -292,14 +239,6 @@ EOT;
         $series_units=array();
         $series_names=array();
 
-        $axisno=0;
-        foreach ($process as $elem) {
-            array_push($yaxis,self::create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno));
-            array_push($series,self::create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
-            array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
-            $axisno++;
-        }
-
         # We need additional entries for names and units
         foreach (array('time','distance') as $elem) {
             array_push($series_names,"'".$elem."':'".$seriesname[$elem]."'");
@@ -309,115 +248,6 @@ EOT;
         $series_units = join (',',$series_units);
         $series_names = join (',',$series_names);
 #categories: $jsvar[xAxis],
-        $postcontent.=<<<EOT
-var \$${container}debug = jQuery('#${container}debug');
-
-/*
- * console.log("Log");
- * console.error("Err");
- * console.warn("War");
- * console.debug("Deb"); 
- */
-
-chart$divno = new Highcharts.Chart({
-      chart: {
-         renderTo: '${container}chart',
-         zoomType: 'x'
-      },
-      title: {
-         text: '$title'
-      },
-      subtitle: {
-         text: '$subtitle'
-      },
-      xAxis: [{
-         type: 'datetime',
-         labels: {
-            formatter: function() {
-                return Highcharts.dateFormat('%d.%m %H:%M:%S', this.value);
-            },
-            rotation: 90,
-            align: 'left',
-            showFirstLabel: true,
-            showLastLabel: true
-         }
-      }],
-      yAxis: [
-EOT;
-
-$postcontent.=join(',',$yaxis);
-
-$postcontent.=<<<EOT
-      ],
-      tooltip: {
-         shared: true,
-         crosshairs: true,
-         borderColor: '#CDCDCD',
-         formatter: function() {
-            var s = '<b>'+ Highcharts.dateFormat('%d.%m.%Y %H:%M:%S', this.x) +'</b>';
-            jQuery.each(this.points, function(i, point) {
-                var unit = { $series_units } [point.series.name];
-                s += '<br/><span style="font-weight:bold;color:'+point.series.color+'">'+ point.series.name+':</span>'+ Math.round(point.y*100)/100 +' '+ unit+'';
-            });
-            var name = { $series_names }['distance'];
-            var unit = { $series_units }[name];
-            s+= '<br/><span style="font-weight:bold;">'+name+':</span></td><td>'+Math.round($jsvar[totaldistance][this.x]/1000*100)/100+unit;
-            var name = { $series_names }['time'];
-            var unit = { $series_units }[name];
-            s+= '<br/><span style="font-weight:bold;">'+name+':</span></td><td>'+Math.floor($jsvar[totalinterval][this.x]/3600)+':'+Math.floor($jsvar[totalinterval][this.x]/60)%60+':'+$jsvar[totalinterval][this.x]%60+unit;
-            return s;
-          }
-      },
-      plotOptions: {
-         area: {
-            fillOpacity: 0.5
-         },
-         series: {
-            point: {
-                events: {
-                    mouseOver: function() {
-                        var lat=$jsvar[lat][this.x];
-                        var lon=$jsvar[lon][this.x];
-                        \$${container}debug.html('Lat: '+ lat +', Lon: '+ lon);
-/*
-                        markers=map.getLayersByName('Marker')[0];
-                        var ll = new OpenLayers.LonLat(lon,lat).transform(map.displayProjection, map.projection);
-                        markers.clearMarkers();
-                        var size = new OpenLayers.Size(21,25);
-                        var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
-                        var icon = new OpenLayers.Icon('http://wwerther.de/wp-content/plugins/osm/icons/marker_blue.png', size, offset);
-                        markers.addMarker(new OpenLayers.Marker(ll,icon));
-*/
-                    }
-                }
-            },
-            events: {
-                mouseOut: function() {                        
-                    \$${container}debug.empty();
-                }
-            }
-        }
-      },
-      legend: {
-         layout: 'horizontal',
-         align: 'center',
-         verticalAlign: 'bottom',
-         floating: false,
-         backgroundColor: '#FFFFFF'
-      },
-      series: [
-EOT;
-
-$postcontent.=join(',',$series);
-
-$postcontent.=<<<EOT
-        ],
-      exporting: {
-        enabled: $enableexport,
-        filename: 'custom-file-name'
-      }
-   });
-EOT;
 
     $yaxis=array();
     $series=array();
@@ -431,48 +261,35 @@ EOT;
         $axisno++;
     }
 
-    $postcontent.=<<<EOT
-
+    $directcontent.=<<<EOT
+<script type="text/javascript">
     var flotoptions$divno={
            xaxes: [ { mode: 'time' } ],
            yaxes: [
 EOT;
 
-    $postcontent.=join(',',$yaxis);
+    $directcontent.=join(',',$yaxis);
 
-    $postcontent.=<<<EOT
+    $directcontent.=<<<EOT
            ],
            legend: { show: false, position: 'sw' },
            crosshair: { mode: 'x' }
 };
 EOT;
 
-    $postcontent.="var flotdata$divno=[\n";
-    $postcontent.=join(',',$series);
-    $postcontent.="\n];\n";
+    $directcontent.="var flotdata$divno=[\n";
+    $directcontent.=join(',',$series);
+    $directcontent.="\n];\n";
 
-$postcontent.=<<<EOT
+$directcontent.=<<<EOT
     jQuery.plot(jQuery("#${container}flot"), flotdata$divno, flotoptions$divno);
+    </script>
 EOT;
 
-    self::$foot_script_content.=$postcontent;
     return $directcontent;
 
     }
  
-	public static function add_script() {
-        if (self::$add_script>0) {
-            wp_print_scripts('highcharts');
-        	wp_print_scripts('highchartsexport');
-
-            wp_print_scripts('flot');
-            wp_print_scripts('flotcross');
-        	wp_print_scripts('excanvas');
-
-            print self::$foot_script_content;
-            print "</script>";
-        }
-	}
 }
  
 /*
