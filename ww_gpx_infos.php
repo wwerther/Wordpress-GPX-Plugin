@@ -32,19 +32,32 @@ class GPX2CHART {
         return '';
     }
  
-	function init() {
+	public static function init() {
 		add_shortcode(GPX2CHART_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
         self::$foot_script_content='<script type="text/javascript">';
 
-        wp_register_script('highcharts', plugins_url('/js/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
-		wp_register_script('highchartsexport', plugins_url('/js/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
+
+        if (self::$debug) {
+            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
+    		wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
+
+            wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
+            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
+        } else {
+            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
+    		wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
+
+            wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
+            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
+
+        }
 
         add_action('wp_footer', array(__CLASS__, 'add_script'));
 	}
 
-    function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
+	public static function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
         $dashstyle=is_null($dashstyle)? '' : "dashStyle: '$dashstyle',";               
         $seriestype=is_null($seriestype)? "type: 'spline'," : "type: '$seriestype',";               
         return "
@@ -63,7 +76,7 @@ class GPX2CHART {
 
     }
 
-    function create_axis($axistitle,$axiscolor,$leftside=true,$axisno=0,$formatter=null) {
+ 	public static function create_axis($axistitle,$axiscolor,$leftside=true,$axisno=0,$formatter=null) {
         $opposite='false';
         if ($leftside==false) $opposite='true';
 
@@ -104,7 +117,7 @@ class GPX2CHART {
  * It provides support for the necessary parameters that are defined in
  * http://codex.wordpress.org/Shortcode_API
  */
-	function handle_shortcode( $atts, $content=null, $code="" ) {
+	public static function handle_shortcode( $atts, $content=null, $code="" ) {
         // $atts    ::= array of attributes
         // $content ::= text within enclosing form of shortcode element
         // $code    ::= the shortcode found, when == callback name
@@ -259,6 +272,7 @@ class GPX2CHART {
 
         $directcontent.=<<<EOT
             <div id="${container}chart" class="gpx2chartchart"></div>
+            <div id="${container}flot" style="width:576px;height:300px" class="gpx2chartchart"></div>
             <div id="${container}meta" class="gpx2chartmeta">
             $metadata
             </div>
@@ -398,15 +412,30 @@ $postcontent.=<<<EOT
    });
 EOT;
 
+
+    $postcontent.=<<<EOT
+
+    var flotoptions$divno={
+    
+    };
+    var flotdata$divno=
+  [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
+    { label: "Bar", data: [ [11, 13], [19, 11], [30, -7] ] } ] ;
+    jQuery.plot(jQuery("#${container}flot"), flotdata$divno, flotoptions$divno);
+EOT;
+
     self::$foot_script_content.=$postcontent;
     return $directcontent;
 
     }
  
-	function add_script() {
+	public static function add_script() {
         if (self::$add_script>0) {
             wp_print_scripts('highcharts');
         	wp_print_scripts('highchartsexport');
+
+            wp_print_scripts('flot');
+        	wp_print_scripts('excanvas');
 
             print self::$foot_script_content;
             print "</script>";
@@ -422,13 +451,18 @@ EOT;
  * properly
  */
 if (! function_exists('add_shortcode')) {
-        function wp_register_script() {
+        function wp_register_script($name, $plugin, $deps, $vers, $switch) {
+            print "REGISTER: $name, $plugin\n";
         }
-        function plugins_url() {
+        function plugins_url($module, $file) {
+            print "PLUGINS_URL: $module, $file \n";
+            return $module;
         }
-        function add_action() {
+        function add_action($hook, $action) {
+            print "ADD_ACTION: $hook, $action[1]\n";
         }
-        function wp_print_scripts() {
+        function wp_print_scripts($script) {
+            print "WP_PRINT_SCRIPT: $script\n";
         }
         function add_shortcode ($shortcode,$function) {
                 echo "Only Test-Case: $shortcode: $function";

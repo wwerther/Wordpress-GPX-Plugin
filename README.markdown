@@ -18,6 +18,8 @@ You can also zoom into the graph to get more details.
 
 The graphs are generated with the [Highcharts-API](http://www.highcharts.com/). Please respect their license and pricing (Free for Non-Commercial).
 
+Current development will allow to use [Flot](http://code.google.com/p/flot/) instead of Highcharts. It is released under [MIT License](http://www.opensource.org/licenses/mit-license.php) and will be therefore more compatible to GPL.
+
 ## Installation ##
 
 1. Download the Plugin ZIP file
@@ -70,6 +72,10 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 
 ## Changelog ##
 
+### 0.2.0 ###
+
+* change to FLOT-API instead of highcharts. 
+
 ### 0.1.5 ###
 
 * improved error-handling if href is not defined
@@ -96,6 +102,10 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 * Initial version of this plugin
 
 ## Upgrade Notice ##
+
+### 0.2.0 ###
+
+Included FLOT-API to avoid license conflicts
 
 ### 0.1.5 ###
 
