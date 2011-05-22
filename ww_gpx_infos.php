@@ -14,16 +14,16 @@ Max WP Version: 3.1.2
 
 
 require_once(dirname(__FILE__).'/ww_gpx.php');
-require_once(dirname(__FILE__).'/render_flot.php');
-define('GPX2CHART_SHORTCODE','gpx2chart');
+
+if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
 
 class GPX2CHART {
 
     static $container_name='GPX2CHART_CONTAINER';
-
+    static $default_rendername='flot';
 	static $add_script;
 
-    static $debug=false;
+    static $debug=true;
 
     static function debug ($text,$headline='') {
         if (self::$debug) {
@@ -37,18 +37,14 @@ class GPX2CHART {
 
         self::$add_script=0;
 
-
         if (self::$debug) {
-
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
         } else {
-
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-
         }
 
 	}
@@ -69,9 +65,6 @@ class GPX2CHART {
         // $code    ::= the shortcode found, when == callback name
         //           [gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="heartrate cadence distance speed") (display="heartrate cadence elevation speed")]
     	self::$add_script++;
-            wp_print_scripts('flot');
-            wp_print_scripts('flotcross');
-        	wp_print_scripts('excanvas');
 
         /* Check if we are in "debug mode". Create a more verbose output then */
         self::$debug=in_array('debug',$atts);
@@ -85,9 +78,13 @@ class GPX2CHART {
 
         $directcontent.=self::debug(var_export ($atts,true),"Attributes");
 
-        $rendername=array_key_exists('render',$atts) ? 'render_'.$atts['render'] : 'render_flot';
+        $rendername=array_key_exists('render',$atts) ? $atts['render'] : self::$default_rendername;
+        $rendername=in_array($rendername, array('flot','highcharts')) ? 'render_'.$rendername : 'render_'.self::$default_rendername;
 
+        if (! class_exists($rendername)) require_once(dirname(__FILE__)."/$rendername.php");
         $render=new $rendername();
+
+        foreach ($render->script_depencies as $depency) wp_print_scripts($depency);
 
         /*
          * Evaluate mandatory attributes
@@ -149,6 +146,13 @@ class GPX2CHART {
         $seriesunit['speed']='km/h';
         $seriesunit['distance']='km';
         $seriesunit['time']='h';
+
+        $formatter['heartrate']='return value.toFixed(axis.tickDecimals) + "bpm";';
+        $formatter['cadence']='return value.toFixed(axis.tickDecimals) + "rpm";';
+        $formatter['elevation']='return value.toFixed(axis.tickDecimals) + "m";';
+        $formatter['speed']='return value.toFixed(axis.tickDecimals) + "km/h";';
+        $formatter['distance']='return value.toFixed(axis.tickDecimals) + "km";';
+        $formatter['time']='return value.toFixed(axis.tickDecimals) + "h";';
 
         $dashstyle['heartrate']='shortdot';
         $seriestype['elevation']='areaspline';
@@ -225,12 +229,11 @@ class GPX2CHART {
         $metadata=join(' ',$met);
 
         $directcontent.=<<<EOT
-            <div id="${container}chart" class="gpx2chartchart"></div>
-            <div id="${container}flot" style="width:576px;height:300px" class="gpx2chartchart"></div>
-            <div id="${container}meta" class="gpx2chartmeta">
+            <div id="${container}chart" style="width:576px;height:300px" class="gpx2chartchart"></div>
+            <div id="${container}meta" class="gpx2chartmeta" style="-webkit-transform: rotate(90deg);-moz-transform: rotate(90deg);-ms-transform: rotate(90deg);-o-transform: rotate(90deg);transform: rotate(90deg);">
             $metadata
             </div>
-            <div id="${container}debug" class="gpx2chartdebug" style="display:none;"> </div>
+            <div id="${container}debug" class="gpx2chartdebug" > </div>
         </div>
 EOT;
 
@@ -255,7 +258,7 @@ EOT;
     $series_names=array();
     $axisno=1;
     foreach ($process as $elem) {
-        array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno));
+        array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem]));
         array_push($series,$render->create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
 #        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
         $axisno++;
@@ -264,6 +267,8 @@ EOT;
     $directcontent.=<<<EOT
 <script type="text/javascript">
     var flotoptions$divno={
+           grid: { hoverable: true
+           },
            xaxes: [ { mode: 'time' } ],
            yaxes: [
 EOT;
@@ -282,8 +287,22 @@ EOT;
     $directcontent.="\n];\n";
 
 $directcontent.=<<<EOT
-    jQuery.plot(jQuery("#${container}flot"), flotdata$divno, flotoptions$divno);
-    </script>
+    var flot$container=jQuery.plot(jQuery("#${container}chart"), flotdata$divno, flotoptions$divno);
+      jQuery("#${container}flot").bind("plothover", function (evt, position, item) {
+        text="Pos: "+position.x+ " ";
+        if (item) {
+          // Lock the crosshair to the data point being hovered
+          flot$container.lockCrosshair({ x: item.datapoint[0], y: item.datapoint[1] });
+          text=text+"Item: "+item.datapoint[0];
+        }
+        else {
+          // Return normal crosshair operation
+          flot$container.unlockCrosshair();
+        }
+        jQuery("#${container}debug").html(text)
+      })
+
+</script>
 EOT;
 
     return $directcontent;
