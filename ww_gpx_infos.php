@@ -14,6 +14,7 @@ Max WP Version: 3.1.2
 
 
 require_once(dirname(__FILE__).'/ww_gpx.php');
+require_once(dirname(__FILE__).'/render_flot.php');
 define('GPX2CHART_SHORTCODE','gpx2chart');
 
 class GPX2CHART {
@@ -135,6 +136,10 @@ class GPX2CHART {
         $postcontent='';
 
         $directcontent.=self::debug(var_export ($atts,true),"Attributes");
+
+        $rendername=array_key_exists('render',$atts) ? 'render_'.$atts['render'] : 'render_flot';
+
+        $render=new $rendername();
 
         /*
          * Evaluate mandatory attributes
@@ -412,15 +417,38 @@ $postcontent.=<<<EOT
    });
 EOT;
 
+    $yaxis=array();
+    $series=array();
+    $series_units=array();
+    $series_names=array();
+    $axisno=1;
+    foreach ($process as $elem) {
+        array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno));
+        array_push($series,$render->create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
+#        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
+        $axisno++;
+    }
 
     $postcontent.=<<<EOT
 
     var flotoptions$divno={
-    
+           xaxes: [ { mode: 'time' } ],
+           yaxes: [
+EOT;
+
+    $postcontent.=join(',',$yaxis);
+
+    $postcontent.=<<<EOT
+           ],
+           legend: { position: 'sw' }
     };
-    var flotdata$divno=
-  [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
-    { label: "Bar", data: [ [11, 13], [19, 11], [30, -7] ] } ] ;
+EOT;
+
+    $postcontent.="var flotdata$divno=[\n";
+    $postcontent.=join(',',$series);
+    $postcontent.="\n];\n";
+
+$postcontent.=<<<EOT
     jQuery.plot(jQuery("#${container}flot"), flotdata$divno, flotoptions$divno);
 EOT;
 
