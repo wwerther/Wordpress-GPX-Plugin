@@ -41,10 +41,12 @@ class GPX2CHART {
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotaxis', plugins_url('/js/flot-axislabels/jquery.flot.axislabels.js',__FILE__), array('jquery','flot'), '2.1.4', false);
         } else {
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotaxis', plugins_url('/js/flot-axislabels/jquery.flot.axislabels.js',__FILE__), array('jquery','flot'), '2.1.4', false);
         }
 
 	}
@@ -230,7 +232,7 @@ class GPX2CHART {
 
         $directcontent.=<<<EOT
             <div id="${container}chart" style="width:576px;height:300px" class="gpx2chartchart"></div>
-            <div id="${container}meta" class="gpx2chartmeta" style="-webkit-transform: rotate(90deg);-moz-transform: rotate(90deg);-ms-transform: rotate(90deg);-o-transform: rotate(90deg);transform: rotate(90deg);">
+            <div id="${container}meta" class="gpx2chartmeta"> <!-- style="-webkit-transform: rotate(90deg);-moz-transform: rotate(90deg);-ms-transform: rotate(90deg);-o-transform: rotate(90deg);transform: rotate(90deg);"> -->
             $metadata
             </div>
             <div id="${container}debug" class="gpx2chartdebug" > </div>

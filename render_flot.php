@@ -3,7 +3,7 @@
 
 class render_flot {
 
-    public $script_depencies = array('flot','flotcross','excanvas');
+    public $script_depencies = array('flot','flotcross','flotaxis','excanvas');
 
 	public function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
         $seriestype=is_null($seriestype)? "" : "lines: { fill: 0.3},";
@@ -30,7 +30,8 @@ class render_flot {
 
         return "
           { // Y-Axis No: $axisno
-            label: '$axistitle',
+            axisLabel: '$axistitle',
+            axisLabelUseCanvas: true,
             position: '$position',
             $formatter
             color: '$axiscolor'
