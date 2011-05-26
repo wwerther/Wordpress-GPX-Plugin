@@ -1,6 +1,6 @@
 [submodule "js/flot"]
 	path = js/flot
-	url = https://github.com/flot/flot.git
+	url = https://github.com/wwerther/flot.git
 [submodule "js/flot-axislabels"]
 	path = js/flot-axislabels
 	url = https://github.com/markrcote/flot-axislabels.git
