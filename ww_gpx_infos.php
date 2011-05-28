@@ -19,7 +19,7 @@ if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
 
 class GPX2CHART {
 
-    static $container_name='GPX2CHART_CONTAINER';
+    static $container_name='GPX2CHART';
     static $default_rendername='flot';
 	static $add_script;
 
@@ -42,11 +42,17 @@ class GPX2CHART {
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('flotaxis', plugins_url('/js/flot-axislabels/jquery.flot.axislabels.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('strftime', "http://hacks.bluesmoon.info/strftime/strftime.js",__FILE__) ;
         } else {
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('flotaxis', plugins_url('/js/flot-axislabels/jquery.flot.axislabels.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('strftime', "http://hacks.bluesmoon.info/strftime/strftime.js",__FILE__) ;
         }
 
 	}
@@ -269,7 +275,10 @@ EOT;
     $directcontent.=<<<EOT
 <script type="text/javascript">
     var flotoptions$divno={
-           grid: { hoverable: true
+           grid: { 
+            hoverable: true,
+            mouseActiveIgnoreY: true,
+            autoHighlight: false,
            },
            xaxes: [ { mode: 'time' } ],
            yaxes: [
@@ -280,7 +289,11 @@ EOT;
     $directcontent.=<<<EOT
            ],
            legend: { show: false, position: 'sw' },
-           crosshair: { mode: 'x' }
+           crosshair: { mode: 'x' },
+           selection: { mode: 'x' },
+           panning: {
+                interactive: true
+            }
 };
 EOT;
 
@@ -289,20 +302,45 @@ EOT;
     $directcontent.="\n];\n";
 
 $directcontent.=<<<EOT
-    var flot$container=jQuery.plot(jQuery("#${container}chart"), flotdata$divno, flotoptions$divno);
-      jQuery("#${container}flot").bind("plothover", function (evt, position, item) {
-        text="Pos: "+position.x+ " ";
+    var flot$container=jQuery("#${container}chart")
+    jQuery.plot(flot$container, flotdata$divno, flotoptions$divno);
+    console.debug("Now binding hover function");
+
+
+    function format_dataset (seriesname,seriesx,seriesy) {
+    
+        return seriesname+": "+seriesy;
+    }
+
+    flot$container.bind("plothover", function (evt, position, item, placeholder) {
+        plot=placeholder.data('plot')
+        series = plot.getData();
+//        console.debug("Placeholder: ",placeholder);
+//        console.debug("PlotContainer: ",plot);
+        text=""
+//        text="Pos: "+position.x+ " Series "+series.length+"<br/> ";
+//        console.debug ("Serien: ",series);
         if (item) {
-          // Lock the crosshair to the data point being hovered
-          flot$container.lockCrosshair({ x: item.datapoint[0], y: item.datapoint[1] });
-          text=text+"Item: "+item.datapoint[0];
+//            console.debug ("Item: ",item);
+            var d = new Date(series[0].data[item.dataIndex][0]);
+            text="Datum : "+d.strftime('%d.%m.%Y %H:%M:%S');
+            for (var i = 0; i < series.length; i++) {
+                text = text+"<br/>"+format_dataset(series[i].label,series[i].data[item.dataIndex][0],series[i].data[item.dataIndex][1]);
+            }
         }
         else {
           // Return normal crosshair operation
-          flot$container.unlockCrosshair();
         }
-        jQuery("#${container}debug").html(text)
+//        console.debug(text);
+        jQuery("#${container}debug").html(text);
       })
+
+    flot$container.bind("plotselected", function (event, ranges) {
+        // $("#selection").text(ranges.xaxis.from.toFixed(1) + " to " + ranges.xaxis.to.toFixed(1));
+        // var zoom = $("#zoom").attr("checked");
+        // console.debug("Ranges: ",ranges);
+    }); 
+
 
 </script>
 EOT;
