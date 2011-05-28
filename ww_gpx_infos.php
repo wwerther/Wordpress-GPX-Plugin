@@ -79,10 +79,13 @@ class GPX2CHART {
 
         $divno=self::$add_script;
 
+ 
         $error=array();
         $container=self::$container_name.$divno;
         $directcontent='';
-        $postcontent='';
+        if ($divno==1) {
+            $directcontent.=self::basicscript();
+        }
 
         $directcontent.=self::debug(var_export ($atts,true),"Attributes");
 
@@ -131,15 +134,15 @@ class GPX2CHART {
         $axisleft['elevation']=false;
         $axisleft['speed']=false;
 
-        $jsvar['heartrate']="data[$divno]['hrs']";
-        $jsvar['cadence']="data[$divno]['cadence']";
-        $jsvar['elevation']="data[$divno]['elevation']";
-        $jsvar['speed']="data[$divno]['speed']";
-        $jsvar['xAxis']="data[$divno]['xAxis']";
-        $jsvar['totaldistance']="data[$divno]['totaldistance']";
-        $jsvar['totalinterval']="data[$divno]['totalinterval']";
-        $jsvar['lat']="data[$divno]['lat']";
-        $jsvar['lon']="data[$divno]['lon']";
+        $jsvar['heartrate']="gpx2chartdata[$divno]['hrs']";
+        $jsvar['cadence']="gpx2chartdata[$divno]['cadence']";
+        $jsvar['elevation']="gpx2chartdata[$divno]['elevation']";
+        $jsvar['speed']="gpx2chartdata[$divno]['speed']";
+        $jsvar['xAxis']="gpx2chartdata[$divno]['xAxis']";
+        $jsvar['totaldistance']="gpx2chartdata[$divno]['totaldistance']";
+        $jsvar['totalinterval']="gpx2chartdata[$divno]['totalinterval']";
+        $jsvar['lat']="gpx2chartdata[$divno]['lat']";
+        $jsvar['lon']="gpx2chartdata[$divno]['lon']";
 
         $seriesname['heartrate']='Heartrate';
         $seriesname['cadence']='Cadence';
@@ -190,25 +193,8 @@ class GPX2CHART {
         $title = $gpx->meta->name;
         $subtitle=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
 
-        $directcontent.='<script type="text/javascript">'."
-           if (! data) {
-               var data=new Array();
-           }
-           data[$divno]=new Array();
-        ";
-
         $gpx->setmaxelem($maxelem);
 #       $gpx->setmaxelem(0);
-        foreach ($process as $elem) {
-           $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
-        }
-        $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
-        $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";
-
-        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
-        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
-
-        $directcontent.="</script>\n";
 
         $met=array();
         foreach ($metadata as $elem) {
@@ -236,15 +222,6 @@ class GPX2CHART {
         }
         $metadata=join(' ',$met);
 
-        $directcontent.=<<<EOT
-            <div id="${container}chart" style="width:576px;height:300px" class="gpx2chartchart"></div>
-            <div id="${container}meta" class="gpx2chartmeta"> <!-- style="-webkit-transform: rotate(90deg);-moz-transform: rotate(90deg);-ms-transform: rotate(90deg);-o-transform: rotate(90deg);transform: rotate(90deg);"> -->
-            $metadata
-            </div>
-            <div id="${container}debug" class="gpx2chartdebug" > </div>
-        </div>
-EOT;
-
         $yaxis=array();
         $series=array();
         $series_units=array();
@@ -260,95 +237,58 @@ EOT;
         $series_names = join (',',$series_names);
 #categories: $jsvar[xAxis],
 
-    $yaxis=array();
-    $series=array();
-    $series_units=array();
-    $series_names=array();
-    $axisno=1;
-    foreach ($process as $elem) {
-        array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem]));
-        array_push($series,$render->create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
-#        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
-        $axisno++;
-    }
+        $yaxis=array();
+        $series=array();
+        $series_units=array();
+        $series_names=array();
+        $axisno=1;
+        foreach ($process as $elem) {
+            array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem]));
+            array_push($series,$render->create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
+    #        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
+            $axisno++;
+        }
 
-    $directcontent.=<<<EOT
-<script type="text/javascript">
-    var flotoptions$divno={
-           grid: { 
-            hoverable: true,
-            mouseActiveIgnoreY: true,
-            autoHighlight: false,
-           },
-           xaxes: [ { mode: 'time' } ],
-           yaxes: [
-EOT;
-
-    $directcontent.=join(',',$yaxis);
-
-    $directcontent.=<<<EOT
-           ],
-           legend: { show: false, position: 'sw' },
-           crosshair: { mode: 'x' },
-           selection: { mode: 'x' },
-           panning: {
-                interactive: true
-            }
-};
-EOT;
-
-    $directcontent.="var flotdata$divno=[\n";
-    $directcontent.=join(',',$series);
-    $directcontent.="\n];\n";
-
-$directcontent.=<<<EOT
-    var flot$container=jQuery("#${container}chart")
-    jQuery.plot(flot$container, flotdata$divno, flotoptions$divno);
-    console.debug("Now binding hover function");
-
-
-    function format_dataset (seriesname,seriesx,seriesy) {
+        $xaxis=array();
+        array_push($xaxis,$render->create_xaxis());
     
-        return seriesname+": "+seriesy;
+        $directcontent.='<script type="text/javascript">'."gpx2chartdata[$divno]=new Array();";
+        foreach ($process as $elem) {
+           $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
+        }
+        $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
+        $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";
+
+        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
+        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
+        $directcontent.="</script>\n";
+
+        $directcontent.=$render->rendercontainer($container,$metadata);
+        $directcontent.=$render->renderoptions("flotoptions$divno",join(',',$xaxis),join(',',$yaxis));
+        $directcontent.=$render->renderseries("flotseries$divno",join(',',$series));
+        $directcontent.=$render->renderplot($container."chart","flotseries$divno","flotoptions$divno");
+        $directcontent.=$render->renderaddon($container);
+
+
+        $directcontent.="</div>";
+
+        return $directcontent;
+
     }
 
-    flot$container.bind("plothover", function (evt, position, item, placeholder) {
-        plot=placeholder.data('plot')
-        series = plot.getData();
-//        console.debug("Placeholder: ",placeholder);
-//        console.debug("PlotContainer: ",plot);
-        text=""
-//        text="Pos: "+position.x+ " Series "+series.length+"<br/> ";
-//        console.debug ("Serien: ",series);
-        if (item) {
-//            console.debug ("Item: ",item);
-            var d = new Date(series[0].data[item.dataIndex][0]);
-            text="Datum : "+d.strftime('%d.%m.%Y %H:%M:%S');
-            for (var i = 0; i < series.length; i++) {
-                text = text+"<br/>"+format_dataset(series[i].label,series[i].data[item.dataIndex][0],series[i].data[item.dataIndex][1]);
-            }
-        }
-        else {
-          // Return normal crosshair operation
-        }
-//        console.debug(text);
-        jQuery("#${container}debug").html(text);
-      })
 
-    flot$container.bind("plotselected", function (event, ranges) {
-        // $("#selection").text(ranges.xaxis.from.toFixed(1) + " to " + ranges.xaxis.to.toFixed(1));
-        // var zoom = $("#zoom").attr("checked");
-        // console.debug("Ranges: ",ranges);
-    }); 
-
-
-</script>
+    function basicscript() {
+    return <<<EOT
+        <!-- Initial GPX2Chart Javascript -->
+        <script type="text/javascript">
+           if (! gpx2chartdata) {
+               var gpx2chartdata=new Array();
+           }
+        </script>
 EOT;
-
-    return $directcontent;
-
     }
- 
+
+
 }
  
 /*
