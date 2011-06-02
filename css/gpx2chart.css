@@ -1,0 +1,75 @@
+/*
+Description: Stylesheet for GPX2Chart
+Author: Walter Werther
+Version: 0.1
+*/
+
+/* ----------- GPX2Chart -------------*/
+
+.gpx2chart {
+	border: 1px solid #fff;
+	background-color: #AAAAAA;
+}
+
+.gpx2charterror {
+	color:#FF0000;
+	background-color: #FFF;
+}
+
+.gpx2chartmeta {
+}
+
+.gpx2charttooltip {
+	border: 1px solid #000;
+	background-color: #FFF;
+	position: absolute;
+	font-size:smaller;
+	font-family: Verdana, Helvetica, Arial, sans-serif;
+
+}
+
+.gpx2charttoolhead {
+	font-size: small;
+	font-weight: bold;
+	text-align: center;
+	margin: 0 0 5px;
+	clear: both;
+}
+
+.gpx2chartlabel {
+	float: left;
+	margin: 0px 10px 0 5px;
+	font-weight: bold;
+	white-space: nowrap;
+}
+.gpx2chartvalue {
+	float: right;
+	margin: 0 5px 0 0;
+	white-space: nowrap;
+}
+
+.Heartrate {
+	color:#AA4643;
+}
+
+.Elevation {
+	color:#89A54E;
+}
+
+.Cadence {
+	color:#4572A7;
+}
+
+.Speed {
+	color:#CACA00;
+}
+
+.gpx2chartrow {
+	clear: both;
+}
+
+
+
+.gpx2chartdebug {
+	display: none;
+}

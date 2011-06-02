@@ -88,31 +88,47 @@ return <<<EOT
     console.debug("Now binding hover function");
     var flot$container=jQuery("#${container}chart");
 
-    function format_dataset (seriesname,seriesx,seriesy) {
-        return seriesname+": "+seriesy;
+    function format_value (value,type) {
+        if (type=='Speed') {
+            return Math.round(value*100)/100+' km/h';
+        }
+        if (type=='Heartrate') {
+            return value+' bpm';
+        }
+        if (type=='Cadence') {
+            return value+' rpm';
+        }
+        if (type=='Elevation') {
+            return value+' m';
+        }
+        return value;
     }
 
-    flot$container.bind("plothover", function (evt, position, item, placeholder) {
+    function format_dataset (seriesname,seriesx,seriesy) {
+        return "<div class='gpx2chartrow'><div class='gpx2chartlabel "+seriesname+"'>"+seriesname+"</div><div class='gpx2chartvalue'>"+format_value(seriesy,seriesname)+"</div></div>";
+    }
+
+    flot$container.bind("plothover", function (evt, position, item, placeholder, orgevent){
         plot=placeholder.data('plot')
         series = plot.getData();
-//        console.debug("Placeholder: ",placeholder);
-//        console.debug("PlotContainer: ",plot);
         text=""
-//        text="Pos: "+position.x+ " Series "+series.length+"<br/> ";
-//        console.debug ("Serien: ",series);
         if (item) {
-//            console.debug ("Item: ",item);
             var d = new Date(series[0].data[item.dataIndex][0]);
-            text="Datum : "+d.strftime('%d.%m.%Y %H:%M:%S');
+            text="<div class='gpx2charttoolhead'>"+d.strftime('%d.%m.%Y %H:%M:%S')+"</div><div>";
             for (var i = 0; i < series.length; i++) {
-                text = text+"<br/>"+format_dataset(series[i].label,series[i].data[item.dataIndex][0],series[i].data[item.dataIndex][1]);
+                text = text+format_dataset(series[i].label,series[i].data[item.dataIndex][0],series[i].data[item.dataIndex][1]);
             }
+            text=text+"</div>";
+            jQuery("#${container}tooltip").html(text);
+            jQuery("#${container}tooltip").css("top",(orgevent.pageY+10)+"px");
+            jQuery("#${container}tooltip").css("left",(orgevent.pageX+10)+"px");
+            jQuery("#${container}tooltip").css("display","block");
         }
         else {
           // Return normal crosshair operation
+          jQuery("#${container}tooltip").css("display","none");
         }
-//        console.debug(text);
-        jQuery("#${container}debug").html(text);
+//        gpx2chartdebug(,"#${container}debug");
       })
 
     flot$container.bind("plotselected", function (event, ranges) {
@@ -130,6 +146,8 @@ EOT;
             <div id="${container}chart" style="width:576px;height:300px" class="gpx2chartchart"></div>
             <div id="${container}meta" class="gpx2chartmeta">
             $metadata
+            </div>
+            <div id="${container}tooltip" class="gpx2charttooltip">
             </div>
             <div id="${container}debug" class="gpx2chartdebug" > </div>
 EOT;

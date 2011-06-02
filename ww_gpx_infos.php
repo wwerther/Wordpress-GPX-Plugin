@@ -54,7 +54,7 @@ class GPX2CHART {
             wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('strftime', "http://hacks.bluesmoon.info/strftime/strftime.js",__FILE__) ;
         }
-
+        wp_enqueue_style('GPX2CHART', plugins_url('css/gpx2chart.css',__FILE__), false, '1.0.0', 'screen');
 	}
 
 
@@ -117,7 +117,7 @@ class GPX2CHART {
         if ((count($error)==0) and (! $gpx->parse())) array_push($error,"Error parsing GPX-File");
 
         /* In case of errors we abort here */
-        if (count($error)>0) return $directcontent.join("<br/>\n",$error)."</div>";
+        if (count($error)>0) return $directcontent."<div class='gpx2charterror'>".join("<br/>\n",$error)."</div></div>";
 
         $colors['heartrate']='#AA4643';
         $colors['cadence']='#4572A7';
@@ -281,6 +281,16 @@ class GPX2CHART {
     return <<<EOT
         <!-- Initial GPX2Chart Javascript -->
         <script type="text/javascript">
+           if (! window.gpx2chartdebug) {
+               function gpx2chartdebug(text, container) {
+                    if (console) {
+                        console.debug(text);
+                    }
+                    if (container) {
+                        jQuery(container).html(text)
+                    }
+               }
+           }
            if (! gpx2chartdata) {
                var gpx2chartdata=new Array();
            }
