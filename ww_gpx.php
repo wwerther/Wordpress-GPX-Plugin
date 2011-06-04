@@ -40,18 +40,28 @@ class GPX_TRACKPOINT implements ArrayAccess {
     protected $data;
 
     public function __construct () {
-        $this->data['totalinterval']=0;
-        $this->data['totaldistance']=0;
         $this->data['speed']=null;
         $this->data['speed']=null;
         $this->data['cadence']=null;
         $this->data['heartrate']=null;
+
+        $this->data['totalinterval']=0;
+        $this->data['totaldistance']=0;
+        $this->data['totalrise']=0;
+        $this->data['totalfall']=0;
     }
 
     public function distance (self $trackpoint) {
         $this->data['distance']=GPX_helper::distance($this->data['lat'],$this->data['lon'],$trackpoint['lat'],$trackpoint['lon'])*GPX_RADIUS;
-        $this->data['height']=$this->data['elevation']-$trackpoint['elevation'];
         $this->data['totaldistance']=$this->data['distance']+$trackpoint['totaldistance'];
+
+        # ToDo: This calculation sucks somehow. I got the impression it returns incorrect values
+        $this->data['height']=$this->data['elevation']-$trackpoint['elevation'];
+        $this->data['totalrise']=$trackpoint['totalrise'];
+        $this->data['totalfall']=$trackpoint['totalfall'];
+        if ($this->data['height']>0) $this->data['totalrise']+=$this->data['height'];
+        if ($this->data['height']<0) $this->data['totalfall']-=$this->data['height'];
+        
         $this->data['interval']=abs($this->data['time']-$trackpoint['time']);
         $this->data['totalinterval']=$this->data['interval']+$trackpoint['totalinterval'];
         if ($this->data['interval']>0) {

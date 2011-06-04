@@ -119,30 +119,30 @@ class GPX2CHART {
         /* In case of errors we abort here */
         if (count($error)>0) return $directcontent."<div class='gpx2charterror'>".join("<br/>\n",$error)."</div></div>";
 
+        # Input series provided by GPX-files are: 
+        #                                               (time, lat, lon) heartrate, cadence, elevation 
+        # Calculated series are:                        
+        #                                               speed, distance, interval, rise, fall
+        # Series that make sense to be displayed as graph: 
+        #                                               heartrate, cadence, elevation, speed
+        # Series that make sense to be displayed additional in the meta-data: 
+        #                                               time, totaldistance, totalinterval, totalrise, totalfall
+
         $colors['heartrate']='#AA4643';
         $colors['cadence']='#4572A7';
         $colors['elevation']='#89A54E';
         $colors['speed']='#CACA00';
+        $colors['time']='#000000';
+
+        $colors['totaldistance']='#000000';
+        $colors['totalinterval']='#000000';
+        $colors['totalrise']='#000000';
+        $colors['totalfall']='#000000';
    
         $axistitle['heartrate']='Heartrate (bpm)';
         $axistitle['cadence']='Cadence (rpm)';
         $axistitle['elevation']='Elevation (m)';
         $axistitle['speed']='Speed (km/h)';
-
-        $axisleft['heartrate']=true;
-        $axisleft['cadence']=true;
-        $axisleft['elevation']=false;
-        $axisleft['speed']=false;
-
-        $jsvar['heartrate']="gpx2chartdata[$divno]['hrs']";
-        $jsvar['cadence']="gpx2chartdata[$divno]['cadence']";
-        $jsvar['elevation']="gpx2chartdata[$divno]['elevation']";
-        $jsvar['speed']="gpx2chartdata[$divno]['speed']";
-        $jsvar['xAxis']="gpx2chartdata[$divno]['xAxis']";
-        $jsvar['totaldistance']="gpx2chartdata[$divno]['totaldistance']";
-        $jsvar['totalinterval']="gpx2chartdata[$divno]['totalinterval']";
-        $jsvar['lat']="gpx2chartdata[$divno]['lat']";
-        $jsvar['lon']="gpx2chartdata[$divno]['lon']";
 
         $seriesname['heartrate']='Heartrate';
         $seriesname['cadence']='Cadence';
@@ -150,6 +150,12 @@ class GPX2CHART {
         $seriesname['speed']='Speed';
         $seriesname['distance']='Distance';
         $seriesname['time']='Time';
+        $seriesname['totaldistance']='Distance since start';
+        $seriesname['totalinterval']='Time since start';
+        $seriesname['totalrise']='Rise';
+        $seriesname['totalfall']='Fall';
+        $seriesname['lat']='Latitude';
+        $seriesname['lon']='Longitude';
 
         $seriesunit['heartrate']='bpm';
         $seriesunit['cadence']='rpm';
@@ -158,12 +164,42 @@ class GPX2CHART {
         $seriesunit['distance']='km';
         $seriesunit['time']='h';
 
+        $axisleft['heartrate']=true;
+        $axisleft['cadence']=true;
+        $axisleft['elevation']=false;
+        $axisleft['speed']=false;
+
+        $jsvar['xAxis']="gpx2chartdata[$divno]['xAxis']";
+
+        $jsvar['heartrate']="gpx2chartdata[$divno]['heartrate']";
+        $jsvar['cadence']="gpx2chartdata[$divno]['cadence']";
+        $jsvar['elevation']="gpx2chartdata[$divno]['elevation']";
+        $jsvar['speed']="gpx2chartdata[$divno]['speed']";
+
+        $jsvar['totaldistance']="gpx2chartdata[$divno]['totaldistance']";
+        $jsvar['totalinterval']="gpx2chartdata[$divno]['totalinterval']";
+        $jsvar['totalrise']="gpx2chartdata[$divno]['totalrise']";
+        $jsvar['totalfall']="gpx2chartdata[$divno]['totalfall']";
+        $jsvar['lat']="gpx2chartdata[$divno]['lat']";
+        $jsvar['lon']="gpx2chartdata[$divno]['lon']";
+
+
+
         $formatter['heartrate']='return value.toFixed(axis.tickDecimals) + "bpm";';
         $formatter['cadence']='return value.toFixed(axis.tickDecimals) + "rpm";';
         $formatter['elevation']='return value.toFixed(axis.tickDecimals) + "m";';
-        $formatter['speed']='return value.toFixed(axis.tickDecimals) + "km/h";';
+        $formatter['speed']='return value.toFixed(axis.tickDecimals);';
         $formatter['distance']='return value.toFixed(axis.tickDecimals) + "km";';
         $formatter['time']='return value.toFixed(axis.tickDecimals) + "h";';
+
+        $labelformat['heartrate']='return value + " bpm";';
+        $labelformat['cadence']='return value + " rpm";';
+        $labelformat['elevation']='return Math.round(value) + " m";';
+        $labelformat['speed']='return Math.round(value*100)/100 + " km/h";';
+        $labelformat['totaldistance']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
+        $labelformat['totalinterval']='return Math.floor(value/3600) + ":"+Math.floor(value/60)%60+":"+value%60;';
+        $labelformat['totalrise']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
+        $labelformat['totalfall']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
 
         $dashstyle['heartrate']='shortdot';
         $seriestype['elevation']='areaspline';
@@ -244,9 +280,12 @@ class GPX2CHART {
         $axisno=1;
         foreach ($process as $elem) {
             array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem]));
-            array_push($series,$render->create_series($seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem]));
+            array_push($series,$render->create_series($elem,$seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
     #        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
             $axisno++;
+        }
+        foreach (array('totaldistance','totalinterval','totalrise','totalfall','lat','lon') as $elem) {
+            array_push($series,$render->create_series($elem,$seriesname[$elem],$colors[$elem],-1,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
         }
 
         $xaxis=array();
@@ -256,11 +295,17 @@ class GPX2CHART {
         foreach ($process as $elem) {
            $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
         }
-        $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
-        $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";
 
-        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
-        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
+        foreach (array('totaldistance','totalinterval','totalrise','totalfall','lat','lon') as $elem) {
+           $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
+ #           $directcontent.=$jsvar[$elem]."={".join(",",$gpx->return_assoc($elem) )."};\n";
+        }
+
+#        $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
+#        $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";#
+
+#        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
+#        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
         $directcontent.="</script>\n";
 
         $directcontent.=$render->rendercontainer($container,$metadata);

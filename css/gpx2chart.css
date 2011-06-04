@@ -8,7 +8,7 @@ Version: 0.1
 
 .gpx2chart {
 	border: 1px solid #fff;
-	background-color: #AAAAAA;
+	background-color: #EEE;
 }
 
 .gpx2charterror {
@@ -25,6 +25,7 @@ Version: 0.1
 	position: absolute;
 	font-size:smaller;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
+	z-index: 10;
 
 }
 

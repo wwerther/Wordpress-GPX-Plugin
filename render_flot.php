@@ -5,13 +5,16 @@ class render_flot {
 
     public $script_depencies = array('flot','flotcross','flotnavigate','flotselection','excanvas','strftime');
 
-	public function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
+	public function create_series($seriesid,$seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null,$labelformat=null) {
         $seriestype=is_null($seriestype)? "" : "lines: { fill: 0.3},";
+        $labelformat=is_null($labelformat)? "" : "labelformat: function(value) { $labelformat },";
         return " {
+            identifier: '$seriesid',
             label: '$seriesname',
             yaxis: $seriesaxis,
             color: '$seriescolor',
             $seriestype
+            $labelformat
             data: $series_data_name
         }
         ";
@@ -88,24 +91,8 @@ return <<<EOT
     console.debug("Now binding hover function");
     var flot$container=jQuery("#${container}chart");
 
-    function format_value (value,type) {
-        if (type=='Speed') {
-            return Math.round(value*100)/100+' km/h';
-        }
-        if (type=='Heartrate') {
-            return value+' bpm';
-        }
-        if (type=='Cadence') {
-            return value+' rpm';
-        }
-        if (type=='Elevation') {
-            return value+' m';
-        }
-        return value;
-    }
-
     function format_dataset (seriesname,seriesx,seriesy) {
-        return "<div class='gpx2chartrow'><div class='gpx2chartlabel "+seriesname+"'>"+seriesname+"</div><div class='gpx2chartvalue'>"+format_value(seriesy,seriesname)+"</div></div>";
+        return "<div class='gpx2chartrow'><div class='gpx2chartlabel "+seriesname+"'>"+seriesname+"</div><div class='gpx2chartvalue'>"+seriesy+"</div></div>";
     }
 
     flot$container.bind("plothover", function (evt, position, item, placeholder, orgevent){
@@ -116,7 +103,9 @@ return <<<EOT
             var d = new Date(series[0].data[item.dataIndex][0]);
             text="<div class='gpx2charttoolhead'>"+d.strftime('%d.%m.%Y %H:%M:%S')+"</div><div>";
             for (var i = 0; i < series.length; i++) {
-                text = text+format_dataset(series[i].label,series[i].data[item.dataIndex][0],series[i].data[item.dataIndex][1]);
+                value=series[i].data[item.dataIndex][1];
+                if (series[i].labelformat) value=series[i].labelformat(value);
+                text = text+format_dataset(series[i].label,series[i].data[item.dataIndex][0],value);
             }
             text=text+"</div>";
             jQuery("#${container}tooltip").html(text);
@@ -134,7 +123,7 @@ return <<<EOT
     flot$container.bind("plotselected", function (event, ranges) {
         // $("#selection").text(ranges.xaxis.from.toFixed(1) + " to " + ranges.xaxis.to.toFixed(1));
         // var zoom = $("#zoom").attr("checked");
-        console.debug("Ranges: ",ranges);
+        //gpx2chartdebug("Ranges: ",ranges);
    }); 
 </script>
 EOT;
