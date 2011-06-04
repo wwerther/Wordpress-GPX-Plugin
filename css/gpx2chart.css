@@ -49,27 +49,9 @@ Version: 0.1
 	white-space: nowrap;
 }
 
-.Heartrate {
-	color:#AA4643;
-}
-
-.Elevation {
-	color:#89A54E;
-}
-
-.Cadence {
-	color:#4572A7;
-}
-
-.Speed {
-	color:#CACA00;
-}
-
 .gpx2chartrow {
 	clear: both;
 }
-
-
 
 .gpx2chartdebug {
 	display: none;

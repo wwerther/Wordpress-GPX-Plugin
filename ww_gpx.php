@@ -409,6 +409,21 @@ class WW_GPX implements Countable, ArrayAccess{
         return $arr;
     }
 
+    public function min($series) {
+        $data=$this->getall($series);
+        return min($data);
+    }
+
+    public function max($series) {
+        $data=$this->getall($series);
+        return max($data);
+    }
+
+    public function avg($series) {
+        $data=$this->getall($series);
+        return sprintf('%.2f',array_sum($data)/count($data));
+    }
+
     public function averageheartrate() {
         $data=$this->getall('heartrate');
         return sprintf('%.2f',array_sum($data)/count($data));

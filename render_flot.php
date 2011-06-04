@@ -20,9 +20,9 @@ class render_flot {
         ";
     }
 
- 	public function create_axis($axistitle,$axiscolor,$leftside=true,$axisno=0,$formatter=null) {
+ 	public function create_axis($axistitle,$axiscolor,$leftside=true,$axisno=0,$formatter=null,$free=null) {
         $position=$leftside ? 'left' : 'right';
-
+        $free=is_null($free)? "" : $free;
         if (!is_null($formatter)){
             $formatter="
             tickFormatter: function(value,axis) {
@@ -36,6 +36,7 @@ class render_flot {
             axisLabel: '$axistitle',
             position: '$position',
             $formatter
+            $free
             color: '$axiscolor'
       }
       ";
@@ -91,8 +92,8 @@ return <<<EOT
     console.debug("Now binding hover function");
     var flot$container=jQuery("#${container}chart");
 
-    function format_dataset (seriesname,seriesx,seriesy) {
-        return "<div class='gpx2chartrow'><div class='gpx2chartlabel "+seriesname+"'>"+seriesname+"</div><div class='gpx2chartvalue'>"+seriesy+"</div></div>";
+    function format_dataset (color,seriesname,seriesx,seriesy) {
+        return "<div class='gpx2chartrow'><div class='gpx2chartlabel' style='color:"+color+";'>"+seriesname+"</div><div class='gpx2chartvalue'>"+seriesy+"</div></div>";
     }
 
     flot$container.bind("plothover", function (evt, position, item, placeholder, orgevent){
@@ -104,8 +105,10 @@ return <<<EOT
             text="<div class='gpx2charttoolhead'>"+d.strftime('%d.%m.%Y %H:%M:%S')+"</div><div>";
             for (var i = 0; i < series.length; i++) {
                 value=series[i].data[item.dataIndex][1];
+                color='#000';
+                if (series[i].color) color=series[i].color;
                 if (series[i].labelformat) value=series[i].labelformat(value);
-                text = text+format_dataset(series[i].label,series[i].data[item.dataIndex][0],value);
+                text = text+format_dataset(color,series[i].label,series[i].data[item.dataIndex][0],value);
             }
             text=text+"</div>";
             jQuery("#${container}tooltip").html(text);

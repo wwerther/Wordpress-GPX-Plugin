@@ -150,19 +150,12 @@ class GPX2CHART {
         $seriesname['speed']='Speed';
         $seriesname['distance']='Distance';
         $seriesname['time']='Time';
-        $seriesname['totaldistance']='Distance since start';
-        $seriesname['totalinterval']='Time since start';
+        $seriesname['totaldistance']='Distance';
+        $seriesname['totalinterval']='Time';
         $seriesname['totalrise']='Rise';
         $seriesname['totalfall']='Fall';
         $seriesname['lat']='Latitude';
         $seriesname['lon']='Longitude';
-
-        $seriesunit['heartrate']='bpm';
-        $seriesunit['cadence']='rpm';
-        $seriesunit['elevation']='m';
-        $seriesunit['speed']='km/h';
-        $seriesunit['distance']='km';
-        $seriesunit['time']='h';
 
         $axisleft['heartrate']=true;
         $axisleft['cadence']=true;
@@ -183,8 +176,7 @@ class GPX2CHART {
         $jsvar['lat']="gpx2chartdata[$divno]['lat']";
         $jsvar['lon']="gpx2chartdata[$divno]['lon']";
 
-
-
+        # Formatter for Axis-Labels
         $formatter['heartrate']='return value.toFixed(axis.tickDecimals) + "bpm";';
         $formatter['cadence']='return value.toFixed(axis.tickDecimals) + "rpm";';
         $formatter['elevation']='return value.toFixed(axis.tickDecimals) + "m";';
@@ -192,6 +184,7 @@ class GPX2CHART {
         $formatter['distance']='return value.toFixed(axis.tickDecimals) + "km";';
         $formatter['time']='return value.toFixed(axis.tickDecimals) + "h";';
 
+        # Formatter for Tooltip-Values
         $labelformat['heartrate']='return value + " bpm";';
         $labelformat['cadence']='return value + " rpm";';
         $labelformat['elevation']='return Math.round(value) + " m";';
@@ -203,6 +196,10 @@ class GPX2CHART {
 
         $dashstyle['heartrate']='shortdot';
         $seriestype['elevation']='areaspline';
+
+        # Adjust the display of elevation a little bit, so the graph does not look to rough if we don't have high differences between min and max
+        # In this case we have at least 40m that are displayed
+        $additionalparameters['elevation']='min: '.($gpx->min('elevation')-20).',max: '.($gpx->max('elevation')+20).',';
 
         $params=array('heartrate','cadence','elevation','speed');
         foreach ($params as $param) {
@@ -279,7 +276,7 @@ class GPX2CHART {
         $series_names=array();
         $axisno=1;
         foreach ($process as $elem) {
-            array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem]));
+            array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem],$additionalparameters[$elem]));
             array_push($series,$render->create_series($elem,$seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
     #        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
             $axisno++;
