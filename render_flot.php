@@ -112,8 +112,8 @@ return <<<EOT
             }
             text=text+"</div>";
             jQuery("#${container}tooltip").html(text);
-            jQuery("#${container}tooltip").css("top",(orgevent.pageY+10)+"px");
-            jQuery("#${container}tooltip").css("left",(orgevent.pageX+10)+"px");
+            jQuery("#${container}tooltip").css("top",(orgevent.clientY+10)+"px");
+            jQuery("#${container}tooltip").css("left",(orgevent.clientX+10)+"px");
             jQuery("#${container}tooltip").css("display","block");
         }
         else {

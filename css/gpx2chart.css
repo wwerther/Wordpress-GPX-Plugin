@@ -22,7 +22,7 @@ Version: 0.1
 .gpx2charttooltip {
 	border: 1px solid #000;
 	background-color: #FFF;
-	position: absolute;
+	position: fixed;
 	font-size:smaller;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 	z-index: 10;
