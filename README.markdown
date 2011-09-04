@@ -5,7 +5,7 @@ Donate link: http://wwerther.de/
 Tags: gpx, tracks, charts
 Requires at least: 3.2
 Tested up to: 3.2.1
-Stable tag: 0.1.5
+Stable tag: 0.2.0
 
 A plugin that generates nice charts from GPX-files. It put's all information about heartrate, cadence, elevation and speed into one chart. 
 
@@ -16,11 +16,13 @@ The TRK-Section is parsed and information about your heartrate, your cadence and
 You can hover with the mouse over the generated chart to get detailed information about the currently selected time-instance. You can also turn off graphs that where currently shown. Every graph get its own Y-axis and color.
 You can also zoom into the graph to get more details.
 
-Current development will use [Flot](http://code.google.com/p/flot/) instead of Highcharts. It is released under [MIT License](http://www.opensource.org/licenses/mit-license.php) and will be therefore more compatible to GPL.
+Current development supports [Flot](http://code.google.com/p/flot/) instead of Highcharts. It is released under [MIT License](http://www.opensource.org/licenses/mit-license.php) and will be therefore more compatible to GPL.
 
-Previous versions used the [Highcharts-API](http://www.highcharts.com/). Please respect their license and pricing (Free for Non-Commercial). The rendering engine for highcharts is still present, but will not be developed further. If you still need it (because you don't want to switch to flot) please let me know.
+Up to version 0.1.5 [Highcharts-API](http://www.highcharts.com/) is the only available rendering engine. Please respect their license and pricing (only Free for Non-Commercial usage).
 
-This plugin depends at least on PHP v5.
+Beginning with 0.2.0 both rendering engines are present. Support for Highcharts is not fully available any more and will be further reduced. If you still need it (because you don't want to switch to FLOT) please let me know.
+
+This plugin also might work with older Wordpress-Releases (3.1.x), but it depends at least on PHP v5. Please let me know if you experience problems with this. 
 
 ## Installation ##
 
@@ -43,13 +45,17 @@ gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="he
 * display="heartrate cadence elevation speed"
 * dashstyle\_(heartrate|cadence|elevation|speed) = (Solid, ShortDash, ShortDot, ShortDashDot, ShortDashDotDot, Dot, Dash, LongDash, DashDot, LongDashDot, LongDashDotDot) defaults to solid, except heartrate=shortdot
 * seriestype\_(heartrate|cadence|elevation|speed) = (area, areaspline, bar, column, line, pie, scatter, spline) defaults to spline, except for elevation=areaspline
+* render = (flot,highcharts) default is flot
 * debug \-\> If this is present the PHP-module put some more information into the HTML-file
 
 ## Frequently Asked Questions ##
 
 ### Where do I get the development-version? ###
 
-I use git for my own development. You can find the Trunk-version on [GitHub](https://github.com/wwerther/Wordpress-GPX-Plugin). It includes also the scripts to update the subversion-directory on wordpress.
+There are several ways. You can download it from (http://plugins.svn.wordpress.org/gpx2chart/trunk/) or use the prepacked version from Wordpress when selecting "other versions" => development version. This will represent a more or less stable release.
+If you really want to use the bleeding-edge you need to download from [GitHub](https://github.com/wwerther/Wordpress-GPX-Plugin). My primary development is done on this plattform. I've also added a scripts to update the subversion-directory on wordpress.
+So the different steps are: local copy on my computer \-\> github \-\> wordpress-svn trunk \-\> wordpress-svn tag
+tagged versions on github have the same code-base like wordpress tags.
 
 ### Are there known bugs? ###
 
@@ -61,10 +67,15 @@ Yes, I'm sorry, there are some known bugs. I had no time to fix or trace them ye
 
 Yes, there is kind of a roadmap. But the order depends on my time.
 
+* Write a better documentation
 * Make the graphs more customizable
-* Include CSS to change layout of the summary, that is currently displayed below the grap
+* Include CSS to change layout of the summary, that is currently displayed below the graph
 * Include a Link to the OSM-module so the Lon/Lat-Information is shown on the map, when hovering over the chart.
 * Include some more error-detection (e.g. File-Not-Found) and change the output then.
+
+### Can I add my own rendering engine ###
+
+Yes, of course! I would really appreciate this. But I'm very sorry to tell, that the interfaces for additional rendering plugins are not finalized yet. They are also not really well documented. Please get in contact with me if you plan to add your own rendering engine. 
 
 ## Screenshots ##
 
@@ -76,7 +87,9 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 
 ### 0.2.0 ###
 
-* change to FLOT-API instead of highcharts. 
+* Change to FLOT-API as default rendering engine instead of Highcharts. 
+* GPX2Chart is still shipped with both rendering engines (Flot and Highcharts)
+* Highcharts is still supported if you add render="highchart" to the option-tags. This will most likely change in future and flot will stay the only rendering engine that get's further development.
 
 ### 0.1.5 ###
 
@@ -107,7 +120,7 @@ Yes, there is kind of a roadmap. But the order depends on my time.
 
 ### 0.2.0 ###
 
-Included FLOT-API to avoid license conflicts
+Changed to FLOT-rendering API as default engine to avoid license conflicts.
 
 ### 0.1.5 ###
 

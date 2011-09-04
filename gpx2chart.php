@@ -4,7 +4,7 @@
 Plugin Name: gpx2chart
 Plugin URI: http://wordpress.org/extend/plugins/gpx2chart/
 Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files
-Version: 0.1.5
+Version: 0.2.0
 Author: Walter Werther
 Author URI: http://wwerther.de/
 Update Server: http://downloads.wordpress.org/plugin
@@ -21,7 +21,7 @@ if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
 class GPX2CHART {
 
     static $container_name='GPX2CHART';
-    static $default_rendername='highchart';
+    static $default_rendername='flot';
 	static $add_script;
 
     static $debug=true;
