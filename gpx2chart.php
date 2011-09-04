@@ -13,7 +13,8 @@ Max WP Version: 3.1.2
  */
 
 
-require_once(dirname(__FILE__).'/ww_gpx.php');
+// Include helper
+require_once(dirname(__FILE__).'/ww_gpx_helper.php');
 
 if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
 
@@ -37,7 +38,7 @@ class GPX2CHART {
 
         self::$add_script=0;
         if (self::$debug) {
-            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
+        wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
    	    wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
