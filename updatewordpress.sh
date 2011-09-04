@@ -11,7 +11,7 @@ fi
 if [ ! -e "wpsvn" ]; then
 	echo "Creating SVN-Enviroment"
 	mkdir wpsvn
-	svn co http://svn.wp-plugins.org/gpx2chart wpsvn
+	svn co http://wwerther@svn.wp-plugins.org/gpx2chart wpsvn
 	mkdir wpsvn/trunk
 	mkdir wpsvn/tags
 fi
