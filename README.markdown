@@ -3,8 +3,8 @@
 Contributors: wwerther
 Donate link: http://wwerther.de/
 Tags: gpx, tracks, charts
-Requires at least: 3.1
-Tested up to: 3.1.2
+Requires at least: 3.2
+Tested up to: 3.2.1
 Stable tag: 0.1.5
 
 A plugin that generates nice charts from GPX-files. It put's all information about heartrate, cadence, elevation and speed into one chart. 
@@ -16,9 +16,11 @@ The TRK-Section is parsed and information about your heartrate, your cadence and
 You can hover with the mouse over the generated chart to get detailed information about the currently selected time-instance. You can also turn off graphs that where currently shown. Every graph get its own Y-axis and color.
 You can also zoom into the graph to get more details.
 
-The graphs are generated with the [Highcharts-API](http://www.highcharts.com/). Please respect their license and pricing (Free for Non-Commercial).
+Current development will use [Flot](http://code.google.com/p/flot/) instead of Highcharts. It is released under [MIT License](http://www.opensource.org/licenses/mit-license.php) and will be therefore more compatible to GPL.
 
-Current development will allow to use [Flot](http://code.google.com/p/flot/) instead of Highcharts. It is released under [MIT License](http://www.opensource.org/licenses/mit-license.php) and will be therefore more compatible to GPL.
+Previous versions used the [Highcharts-API](http://www.highcharts.com/). Please respect their license and pricing (Free for Non-Commercial). The rendering engine for highcharts is still present, but will not be developed further. If you still need it (because you don't want to switch to flot) please let me know.
+
+This plugin depends at least on PHP v5.
 
 ## Installation ##
 
