@@ -21,7 +21,7 @@ if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
 class GPX2CHART {
 
     static $container_name='GPX2CHART';
-    static $default_rendername='flot';
+    static $default_rendername='highchart';
 	static $add_script;
 
     static $debug=true;
@@ -38,8 +38,8 @@ class GPX2CHART {
 
         self::$add_script=0;
         if (self::$debug) {
-        wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
-   	    wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
+            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
+   	        wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
             wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
@@ -81,7 +81,7 @@ class GPX2CHART {
     	self::$add_script++;
 
         /* Check if we are in "debug mode". Create a more verbose output then */
-        self::$debug=in_array('debug',$atts);
+        self::$debug=self::$debug ? self::$debug : in_array('debug',$atts);
 
         $divno=self::$add_script;
 
@@ -95,10 +95,22 @@ class GPX2CHART {
 
         $directcontent.=self::debug(var_export ($atts,true),"Attributes");
 
-        $rendername=array_key_exists('render',$atts) ? $atts['render'] : self::$default_rendername;
-        $rendername=in_array($rendername, array('flot','highcharts')) ? 'render_'.$rendername : 'render_'.self::$default_rendername;
 
-        if (! class_exists($rendername)) require_once(dirname(__FILE__)."/$rendername.php");
+        /* Scan for available rendering engines */
+        $dh  = opendir(dirname(__FILE__).'/render');
+        $engines=array();
+        while (false !== ($filename = readdir($dh))) {
+            /* Skip meta-Directories */
+            if (substr($filename,0,1) == '.') continue;
+            $engines[] = basename($filename,'.php');
+        }
+        $directcontent.=self::debug(var_export($engines,true),"Engines");
+
+        $rendername=array_key_exists('render',$atts) ? $atts['render'] : self::$default_rendername;
+        $rendername=in_array($rendername, $engines) ? $rendername : self::$default_rendername;
+
+        if (! class_exists($rendername)) require_once(dirname(__FILE__)."/render/$rendername.php");
+        $rendername='render_'.$rendername;
         $render=new $rendername();
 
         foreach ($render->script_depencies as $depency) wp_print_scripts($depency);

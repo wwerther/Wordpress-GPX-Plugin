@@ -3,6 +3,8 @@
 
 class render_highchart {
 
+    public $script_depencies = array ('highcharts','highchartsexport');
+
 	public function create_series($seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null) {
         $dashstyle=is_null($dashstyle)? '' : "dashStyle: '$dashstyle',";               
         $seriestype=is_null($seriestype)? "type: 'spline'," : "type: '$seriestype',";               
@@ -52,6 +54,29 @@ class render_highchart {
       ";
     }
 
+    public function create_xaxis ($mode='time') {
+        return '';
+    }
+
+    public function renderoptions  ($varname,$xaxes,$yaxes) {
+        return '';
+    }
+
+     public function renderseries ($varname,$series) {
+        return '';
+     }
+
+     public function renderplot ($container,$optionname,$seriesname) {
+        return '';
+     }
+
+     public function renderaddon ($container) {
+        return '';
+     }
+
+     public function rendercontainer ($container,$metadata) {
+        return '';
+     }
 
 }
 
