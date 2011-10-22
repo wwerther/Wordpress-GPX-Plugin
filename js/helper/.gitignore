@@ -1,0 +1,7 @@
+*.swp
+*.min.*
+*~
+wpsvn/
+stage/
+stage.sh
+test.sh
