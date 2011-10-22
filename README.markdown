@@ -57,9 +57,9 @@ If you really want to use the bleeding-edge you need to download from [GitHub](h
 So the different steps are: local copy on my computer \-\> github \-\> wordpress-svn trunk \-\> wordpress-svn tag
 tagged versions on github have the same code-base like wordpress tags.
 
-### Are there known bugs? ###
+### How can I help you? ###
 
-Yes, I'm sorry, there are some known bugs. I had no time to fix or trace them yet.
+I know that there are still some bugs in this plugin. Since I only have limited possibilities to test with different browser etc. So please let me know if you find a bug. Normally I try to fix them very soon. Thanks to Michael for all tests he is doing...
 
 * The legend on the x-axis disappear sometimes when selecting/deselecting single-graphs
 
@@ -84,6 +84,14 @@ Yes, of course! I would really appreciate this. But I'm very sorry to tell, that
 3. ![Graph3][screenshot3] By clicking on the legend you can deactivate one or graph
 
 ## Changelog ##
+
+### 0.2.1 ###
+* commented out some code, so the tooltips look a bit more friendly
+* Fixed depency injection for excanvas and highcharts
+* debug-mode is disabled now for production-usage
+* Use minified versions of the js-files now
+* Put strftime-function to js/helpers
+* Fixed Tooltip for IE
 
 ### 0.2.0 ###
 

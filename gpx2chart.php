@@ -24,7 +24,7 @@ class GPX2CHART {
     static $default_rendername='flot';
 	static $add_script;
 
-    static $debug=true;
+    static $debug=false;
 
     static function debug ($text,$headline='') {
         if (self::$debug) {
@@ -38,27 +38,30 @@ class GPX2CHART {
 
         self::$add_script=0;
         if (self::$debug) {
+            wp_register_script('strftime', plugins_url('/js/helper/strftime.js',__FILE__)) ;
+            wp_register_script('sprintf', plugins_url('/js/helper/sprintf.js',__FILE__)) ;
+
             wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
    	        wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
 
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
-            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery'), '2.1.4', false);
+
+            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery','excanvas','highchartsexport','strftime','sprintf'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotaxis', plugins_url('/js/flot-axislabels/jquery.flot.axislabels.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('strftime', "http://hacks.bluesmoon.info/strftime/strftime.js",__FILE__) ;
         } else {
+            wp_register_script('strftime', plugins_url('/js/helper/strftime.min.js',__FILE__)) ;
+            wp_register_script('sprintf', plugins_url('/js/helper/sprintf.min.js',__FILE__)) ;
+
             wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
     	    wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
-
             wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
-            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery'), '2.1.4', false);
+
+            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery','excanvas','highchartsexport','strftime','sprintf'), '2.1.4', false);
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotaxis', plugins_url('/js/flot-axislabels/jquery.flot.axislabels.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('strftime', "http://hacks.bluesmoon.info/strftime/strftime.js",__FILE__) ;
+            wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
         }
         wp_enqueue_style('GPX2CHART', plugins_url('css/gpx2chart.css',__FILE__), false, '1.0.0', 'screen');
 	}
@@ -207,8 +210,8 @@ class GPX2CHART {
         $labelformat['cadence']='return value + " rpm";';
         $labelformat['elevation']='return Math.round(value) + " m";';
         $labelformat['speed']='return Math.round(value*100)/100 + " km/h";';
-        $labelformat['totaldistance']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
-        $labelformat['totalinterval']='return Math.floor(value/3600) + ":"+Math.floor(value/60)%60+":"+value%60;';
+        $labelformat['totaldistance']='if (value>1000) return sprintf("%.2f km",Math.round(value/10)/100); return Math.round(value) + " m"';
+        $labelformat['totalinterval']='return sprintf("%02d:%02d:%02d",Math.floor(value/3600),Math.floor(value/60)%60,value%60);';
         $labelformat['totalrise']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
         $labelformat['totalfall']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
 
@@ -299,7 +302,7 @@ class GPX2CHART {
     #        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
             $axisno++;
         }
-        foreach (array('totaldistance','totalinterval','totalrise','totalfall','lat','lon') as $elem) {
+        foreach (array('totaldistance','totalinterval' /*,'totalrise','totalfall','lat','lon' */) as $elem) {
             array_push($series,$render->create_series($elem,$seriesname[$elem],$colors[$elem],-1,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
         }
 
@@ -343,7 +346,9 @@ class GPX2CHART {
            if (! window.gpx2chartdebug) {
                function gpx2chartdebug(text, container) {
                     if (console) {
-                        console.debug(text);
+                        if (console.debug) {
+                            console.debug(text);
+                        }
                     }
                     if (container) {
                         jQuery(container).html(text)

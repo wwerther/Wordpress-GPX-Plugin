@@ -18,8 +18,15 @@ fi
 
 echo "Copy PHP-Source"
 cp -v *php wpsvn/trunk
+
+echo "Compile JS-Libs"
+make -C js/helper
+make -C jsflot
+
 echo "Copy Javascript"
 cp -v -r js wpsvn/trunk
+echo "Copy CSS"
+cp -v -r css wpsvn/trunk
 echo "Copy Render"
 cp -v -r render wpsvn/trunk
 echo "Copy Test-Files"
