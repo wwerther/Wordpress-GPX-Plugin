@@ -89,7 +89,11 @@ EOT;
 
 return <<<EOT
 <script type="text/javascript">
-    console.debug("Now binding hover function");
+    if (console) {
+        if (console.debug) {
+            console.debug("Now binding hover function");
+        }
+    }
     var flot$container=jQuery("#${container}chart");
 
     function format_dataset (color,seriesname,seriesx,seriesy) {
