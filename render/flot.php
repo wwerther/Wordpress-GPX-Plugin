@@ -53,7 +53,7 @@ class render_flot {
                 grid: { 
                     hoverable: true,
                     mouseActiveIgnoreY: true,
-                    autoHighlight: false,
+                    autoHighlight: false
                 },
                 xaxes: [ $xaxes ],
                 yaxes: [ $yaxes ],
