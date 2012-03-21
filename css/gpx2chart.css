@@ -17,6 +17,12 @@ Version: 0.1
 }
 
 .gpx2chartmeta {
+	font-family: Verdana, Helvetica, Arial, sans-serif;
+	font-size: x-small;
+}
+
+.gpx2chartmeta tr th {
+	padding: 0px 0px 0px 10px;
 }
 
 .gpx2charttooltip {

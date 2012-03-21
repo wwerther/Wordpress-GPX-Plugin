@@ -9,7 +9,7 @@ Author: Walter Werther
 Author URI: http://wwerther.de/
 Update Server: http://downloads.wordpress.org/plugin
 Min WP Version: 3.1.2
-Max WP Version: 3.1.2
+Max WP Version: 3.3.1
  */
 
 
@@ -29,7 +29,7 @@ if ( ! defined( 'WP_PLUGIN_URL' ) )
 if ( ! defined( 'WP_PLUGIN_DIR' ) )
       define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins' );
 define ("GPX2CHART_PLUGIN_URL", WP_PLUGIN_URL."/gpx2chart/");
-define ("GPX2CHART_PLUGIN_ICONS_URL", GPX2CHART_PLUGIN_URL."icons/");
+#define ("GPX2CHART_PLUGIN_ICONS_URL", GPX2CHART_PLUGIN_URL."icons/");
 
 
 class GPX2CHART {
@@ -101,15 +101,15 @@ class GPX2CHART {
 	public static function options_page_gpx() {
         if(isset($_POST['Options'])){
 		} else{
-			add_option('osm_custom_field', 0);
-			add_option('osm_zoom_level', 0);
+#			add_option('osm_custom_field', 0);
+#			add_option('osm_zoom_level', 0);
 		}
     // name of the custom field to store Long and Lat
     // for the geodata of the post
-		$osm_custom_field  = get_option('osm_custom_field');                                                  
+#		$osm_custom_field  = get_option('osm_custom_field');                                                  
 
     // zoomlevel for the link the OSM page
-    $osm_zoom_level    = get_option('osm_zoom_level');
+#    $osm_zoom_level    = get_option('osm_zoom_level');
     include('gpx2chart_options.php');	
 
     }
@@ -295,7 +295,7 @@ class GPX2CHART {
 
         $met=array();
         foreach ($metadata as $elem) {
-            $text=$seriesname[$elem].": ";
+            $text="<tr><th style=\"padding: 0px 0px 0px 10px;border:none;color:".$colors[$elem].";\">".$seriesname[$elem]."</th><td style=\"padding: 0px 0px 0px 10px;border:none\">";
             switch ($elem) {
                 case 'heartrate': {
                     $text.=$gpx->averageheartrate();
@@ -314,10 +314,10 @@ class GPX2CHART {
                     break;
                 }
             }
-            $text.=" ".$seriesunit[$elem];
+            $text.=" ".$seriesunit[$elem]."</td></tr>";
             array_push($met,$text);
         }
-        $metadata=join(' ',$met);
+        $metadata="<table>".join(' ',$met)."</table>";
 
         $yaxis=array();
         $series=array();
@@ -377,6 +377,12 @@ class GPX2CHART {
 
 
         $directcontent.="</div>";
+
+
+        $directcontent.=file_get_contents(GPX2CHART_PLUGIN_URL.'/jogging.profile');
+
+        $directcontent.="";
+
 
         return $directcontent;
 
