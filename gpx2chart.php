@@ -13,10 +13,24 @@ Max WP Version: 3.1.2
  */
 
 
+define ('GPX2CHART_PLUGIN_VER','0.2.2');
+
 // Include helper
 require_once(dirname(__FILE__).'/ww_gpx_helper.php');
 
 if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
+
+if ( ! defined( 'WP_CONTENT_URL' ) )
+      define( 'WP_CONTENT_URL', get_option( 'siteurl' ) . '/wp-content' );
+if ( ! defined( 'WP_CONTENT_DIR' ) )
+      define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' );
+if ( ! defined( 'WP_PLUGIN_URL' ) )
+      define( 'WP_PLUGIN_URL', WP_CONTENT_URL. '/plugins' );
+if ( ! defined( 'WP_PLUGIN_DIR' ) )
+      define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins' );
+define ("GPX2CHART_PLUGIN_URL", WP_PLUGIN_URL."/gpx2chart/");
+define ("GPX2CHART_PLUGIN_ICONS_URL", GPX2CHART_PLUGIN_URL."icons/");
+
 
 class GPX2CHART {
 
@@ -24,7 +38,7 @@ class GPX2CHART {
     static $default_rendername='flot';
 	static $add_script;
 
-    static $debug=false;
+    static $debug=true;
 
     static function debug ($text,$headline='') {
         if (self::$debug) {
@@ -32,8 +46,15 @@ class GPX2CHART {
         }
         return '';
     }
+
+    public function __construct() {
+        $this->init();
+    }
  
 	public static function init() {
+
+        add_action('admin_menu', array(__CLASS__, 'admin_menu'));
+
 		add_shortcode(GPX2CHART_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
 
         self::$add_script=0;
@@ -70,6 +91,28 @@ class GPX2CHART {
 	public static function formattime($value) {
             return strftime('%H:%M:%S',$value);
 	}
+
+
+	function admin_menu($not_used){
+    // place the info in the plugin settings page
+		add_options_page(__('GPX2Chart Settings', 'GPX2Chart'), __('GPX2Chart', 'GPX2Chart'), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
+	}
+
+	public static function options_page_gpx() {
+        if(isset($_POST['Options'])){
+		} else{
+			add_option('osm_custom_field', 0);
+			add_option('osm_zoom_level', 0);
+		}
+    // name of the custom field to store Long and Lat
+    // for the geodata of the post
+		$osm_custom_field  = get_option('osm_custom_field');                                                  
+
+    // zoomlevel for the link the OSM page
+    $osm_zoom_level    = get_option('osm_zoom_level');
+    include('gpx2chart_options.php');	
+
+    }
 
 /*
  * Our shortcode-Handler for GPX-Files
@@ -394,7 +437,7 @@ if (! function_exists('add_shortcode')) {
         };
 }
 
-
-GPX2CHART::init();
+$pGPX2Chart=new GPX2CHART();
+#GPX2CHART::init();
 
 ?>
