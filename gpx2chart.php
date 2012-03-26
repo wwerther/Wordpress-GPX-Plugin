@@ -2,8 +2,8 @@
 // vim: set ts=4 et nu ai syntax=php indentexpr= :vim
 /*
 Plugin Name: gpx2chart
-Plugin URI: http://wordpress.org/extend/plugins/gpx2chart/
-Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files
+Plugin URI: http://wwerther.de/static/gpx2chart
+Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files. Samples can be found on <a href="http://wwerther.de/static/gpx2chart">GPX2Chart plugin page</a>. Default-configuration can be done on the [<a href="options-general.php?page=gpx2chart.php">settings-page</a>].
 Version: 0.2.2
 Author: Walter Werther
 Author URI: http://wwerther.de/
@@ -258,79 +258,60 @@ class GPX2CHART {
         $additionalparameters['elevation']='min: '.($gpx->min('elevation')-20).',max: '.($gpx->max('elevation')+20).',';
 
         # The maximum series that are available
-        $process=array('heartrate','cadence','elevation','speed');
-        $metadata=array('heartrate','cadence','distance','speed');
+        # $process=array('heartrate','cadence','elevation','speed');
+        # $metadata=array('heartrate','cadence','distance','speed');
 
         # If we have defined a display variable we intersect the two arrays and take only the ones that are in both
-        $process=$atts['display'] ? array_intersect($process,split(' ',$atts['display'])) : $process;
-        $metadata=$atts['metadata'] ? array_intersect($metadata,split(' ',$atts['metadata'])) : $metadata;
+        # $process=$atts['display'] ? array_intersect($process,split(' ',$atts['display'])) : $process;
+        # $metadata=$atts['metadata'] ? array_intersect($metadata,split(' ',$atts['metadata'])) : $metadata;
 
         # We remove the entries where we don't have data in our GPX-File
-        $process=array_diff($process,$gpx->getunavailable());
-        $metadata=array_diff($metadata,$gpx->getunavailable());
-
+        $this->configuration['data.embed']=explode(" ",$this->configuration['data.embed']);
+        $this->configuration['data.embed.available']=array_diff($this->configuration['data.embed'],$gpx->getunavailable());
+        $this->configuration['data.series']=explode(" ",$this->configuration['data.series']);
+        $this->configuration['data.series.available']=array_diff($this->configuration['data.series'],$gpx->getunavailable());
+        $this->configuration['data.yaxis.show']=explode(" ",$this->configuration['data.yaxis.show']);
+        $this->configuration['data.yaxis.show.available']=array_diff($this->configuration['data.yaxis.show'],$gpx->getunavailable());
+        
         $this->configuration['title'] = $gpx->meta->name;
         $this->configuration['subtitle']=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
 
-        $gpx->setmaxelem($maxelem);
-#       $gpx->setmaxelem(0);
+        $gpx->setmaxelem($this->configuration['maxelem']);
 
-        $yaxis=array();
-        $series=array();
-        $series_units=array();
-        $series_names=array();
-
-       # We need additional entries for names and units
-        foreach (array('time','distance') as $elem) {
-            array_push($series_names,"'".$elem."':'".$this->configuration["$elem.series.name"]."'");
-            array_push($series_units,"'".$this->configuration["$elem.series.name"]."':'".$seriesunit[$elem]."'");
+        $dataarrays=Array();
+        foreach ($this->configuration['data.embed.available'] as $elem) {
+           array_push($dataarrays,"gpx2chart['data'][$divno]['$elem']= new Array(".join(",",$gpx->return_pair($elem) ).");");
         }
 
-        $series_units = join (',',$series_units);
-        $series_names = join (',',$series_names);
-#categories: $jsvar[xAxis],
-
         $yaxis=array();
-        $series=array();
-        $series_units=array();
-        $series_names=array();
         $axisno=1;
-        foreach ($process as $elem) {
-            array_push($yaxis,$render->create_axis($this->configuration["$elem.axis.title"],$this->configuration["$elem.color"],$this->configuration["$elem.axis.left"],$axisno,$this->configuration["$elem.axis.format"],$additionalparameters[$elem]));
-            array_push($series,$render->create_series($elem,$this->configuration["$elem.series.name"],$this->configuration["$elem.color"],$axisno,$jsvar[$elem],$this->configuration["$elem.dash.style"],$this->configuration["$elem.series.type"],$labelformat[$elem]));
+        foreach ($this->configuration['data.yaxis.show.available'] as $elem) {
+            array_push($yaxis,$render->create_axis($this->configuration["$elem.axis.title"],$this->configuration["$elem.color"],$this->configuration["$elem.yaxis.left"],$axisno,$this->configuration["$elem.axis.format"],$additionalparameters[$elem]));
+            $this->configuration["$elem.yaxis.no"]=$axisno;
             $axisno++;
         }
-        foreach (array('totaldistance','totalinterval' /*,'totalrise','totalfall','lat','lon' */) as $elem) {
-            array_push($series,$render->create_series($elem,$this->configuration["$elem.series.name"],$this->configuration["$elem.color"],-1,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
+
+        $series=array();
+        foreach ($this->configuration['data.series.available'] as $elem) {
+            $axisno=array_key_exists("$elem.yaxis.no",$this->configuration) ? $this->configuration["$elem.yaxis.no"] : -1;
+            array_push($series,$render->create_series($elem,$this->configuration["$elem.series.name"],$this->configuration["$elem.color"],$axisno,"gpx2chart['data'][$divno]['$elem']",$this->configuration["$elem.dash.style"],$this->configuration["$elem.series.type"],$labelformat[$elem]));
         }
+
 
         $xaxis=array();
         array_push($xaxis,$render->create_xaxis());
 
-        $dataarrays='';
-        $dataarrays.='<script type="text/javascript">'."gpx2chartdata[$divno]=new Array();";
-        foreach ($process as $elem) {
-           $dataarrays.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
-        }
-        foreach (array('totaldistance','totalinterval','totalrise','totalfall','lat','lon') as $elem) {
-           $dataarrays.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
- #           $directcontent.=$jsvar[$elem]."={".join(",",$gpx->return_assoc($elem) )."};\n";
-        }
 
-#        $directcontent.=$jsvar['totaldistance']."={".join(",",$gpx->return_assoc('totaldistance'))."};\n";
-#        $directcontent.=$jsvar['totalinterval']."={".join(",",$gpx->return_assoc('totalinterval') )."};\n";#
+        $this->data['data.js.dataarray']=join("\n",$dataarrays);
 
-#        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
-#        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
-        $dataarrays.="</script>\n";
+        $this->data['data.js.xaxis']=join(",\n",$xaxis);
+        $this->data['data.js.yaxis']=join(",\n",$yaxis);
+        
+        $this->data['data.js.options']=$render->renderoptions("gpx2chart['options'][$divno]",$this->data['data.js.xaxis'],$this->data['data.js.yaxis']);
+        $this->data['data.js.series']=$render->renderseries("gpx2chart['series'][$divno]",join(',',$series));
 
-        $this->data['data.js.dataarray']=$dataarrays;
-        $this->data['data.js.options']=$render->renderoptions("flotoptions$divno",join(',',$xaxis),join(',',$yaxis));
-
-        $this->data['data.js.series']=$render->renderseries("flotseries$divno",join(',',$series));
-
-        $this->data['data.js.render']=$render->renderplot($this->configuration['id']."chart","flotseries$divno","flotoptions$divno");
-        $this->data['data.js.addon']=$directcontent.=$render->renderaddon($this->configuration['id']);
+        $this->data['data.js.render']=$render->renderplot($this->configuration['id']."chart","gpx2chart['series'][$divno]","gpx2chart['options'][$divno]");
+        $this->data['data.js.addon']=$directcontent.=$render->renderaddon($this->configuration['id'],$this->configuration['instance']);
 
 
         return $this->renderpage($profilecontent);
@@ -412,16 +393,6 @@ class GPX2CHART {
                 if (is_null($this->gpx)) return '';
                 return $this->gpx->totaldistance();
             break;
-            case 'gpx.contain.cadence':
-                if (is_null($this->gpx)) return '';
-                if (in_array('cadence',$this->gpx->getunavailable())) return '';
-                return 'true';
-            break;
-            case 'gpx.contain.heartrate':
-                if (is_null($this->gpx)) return '';
-                if (in_array('heartrate',$this->gpx->getunavailable())) return '';
-                return 'true';
-            break;
             default:
 
                 list($module,$function,$series,$type)=explode('.',$matches[1]);
@@ -444,7 +415,22 @@ class GPX2CHART {
                                 return "GPX: unknown function $type on $series";
                         }
                     } elseif ($function=='contain') {
+#                   return "<!-- next $matches[1] $module:$function:$series:$type -->";
                         return $this->gpx->contain($series);
+                    } elseif ($function=='stat') {
+                        if ($series=='elevation') {
+                            if ($type=='rise') {
+                                return "GPX: unknown stat RISE on $series";
+                            } elseif ($type=='fall') {
+                                return "GPX: unknown stat FALL on $series";
+                            } else {
+                                return "GPX: unknown stat $type on $series";
+                            }
+                        } else {
+                                return "GPX: unknown stat $type on $series";
+                        }
+                    } else {
+                       return "Unknown function $contain with $series:$type";
                     }
                 }
 
@@ -454,7 +440,7 @@ class GPX2CHART {
                     if (array_key_exists($matches[1],$this->data)) {
                         return $this->data[$matches[1]];
                     }
-                   # return "<!-- next $matches[1] $module:$function:$series:$type -->";
+#                   return "<!-- next $matches[1] $module:$function:$series:$type -->";
                    return '';
                 }
             break;
