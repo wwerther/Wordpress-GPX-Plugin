@@ -52,48 +52,82 @@ class GPX2CHART {
     public function __construct() {
         add_action('admin_menu', array(&$this, 'admin_menu'));
         add_action('init', array(&$this, 'init'));
+        add_filter('the_posts', array(&$this,'conditionally_add_scripts_and_styles')); # http://beerpla.net/2010/01/13/wordpress-plugin-development-how-to-include-css-and-javascript-conditionally-and-only-when-needed-by-the-posts/
 		add_shortcode(GPX2CHART_SHORTCODE, array(&$this, 'handle_shortcode'));
-
     }
+
+    public function conditionally_add_scripts_and_styles($posts){
+        if (empty($posts)) return $posts;
  
+    	$shortcode_found = false; // use this flag to see if styles and scripts need to be enqueued
+	    foreach ($posts as $post) {
+		    if (stripos($post->post_content, '['.GPX2CHART_SHORTCODE) !== false) {
+    			$shortcode_found = true; // bingo!
+	    		break;
+    		}
+	    }
+ 
+    	if ($shortcode_found) {
+	    	// enqueue here
+		    wp_enqueue_style('gpx2chart');
+    		wp_enqueue_script('gpx2chart');
+    		wp_enqueue_script('flotcross');
+    		wp_enqueue_script('flotnavigate');
+    		wp_enqueue_script('flotselection');
+
+    		wp_enqueue_script('highcharts');
+    		wp_enqueue_script('highchartsexport');
+	    }
+ 
+    	return $posts;
+    }
+
 	public function init() {
         load_plugin_textdomain('GPX2Chart-plugin', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/');
+
+        $minimized='.min';
         if ($this->debug) {
-            wp_register_script('strftime', plugins_url('/js/helper/strftime.js',__FILE__)) ;
-            wp_register_script('sprintf', plugins_url('/js/helper/sprintf.js',__FILE__)) ;
-
-            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.src.js',__FILE__), array('jquery'), '2.1.4', false);
-   	        wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
-
-            wp_register_script('excanvas', plugins_url('/js/flot/excanvas.js',__FILE__), array('jquery'), '2.1.4', false);
-
-            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.js',__FILE__), array('jquery','excanvas','highchartsexport','strftime','sprintf'), '2.1.4', false);
-            wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-
-            wp_register_script('gpx2chart', plugins_url('/js/gpx2chart.js',__FILE__)) ;
-        } else {
-            wp_register_script('strftime', plugins_url('/js/helper/strftime.min.js',__FILE__)) ;
-            wp_register_script('sprintf', plugins_url('/js/helper/sprintf.min.js',__FILE__)) ;
-
-            wp_register_script('highcharts', plugins_url('/js/highcharts/highcharts.js',__FILE__), array('jquery'), '2.1.4', false);
-    	    wp_register_script('highchartsexport', plugins_url('/js/highcharts/modules/exporting.js',__FILE__), array('jquery','highcharts'), '2.1.4', false);
-            wp_register_script('excanvas', plugins_url('/js/flot/excanvas.min.js',__FILE__), array('jquery'), '2.1.4', false);
-
-            wp_register_script('flot', plugins_url('/js/flot/jquery.flot.min.js',__FILE__), array('jquery','excanvas','highchartsexport','strftime','sprintf'), '2.1.4', false);
-            wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
-            wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.min.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+            $minimized='';
         }
-        wp_enqueue_style('GPX2CHART', plugins_url('css/gpx2chart.css',__FILE__), false, '1.0.0', 'screen');
-	}
 
+        wp_deregister_style('gpx2chart');
+        wp_register_style('gpx2chart', GPX2CHART_PLUGIN_URL."css/gpx2chart.css", false, '1.0.0', 'screen');
+
+        wp_deregister_script('strftime');
+        wp_deregister_script('sprintf');
+        wp_deregister_script('excanvas');
+        wp_deregister_script('flot');
+        wp_deregister_script('flotcross');
+        wp_deregister_script('flotnavigate');
+        wp_deregister_script('flotselection');
+        wp_deregister_script('flotselection');
+        wp_deregister_script('gpx2chart');
+
+        wp_register_script('gpx2chart', GPX2CHART_PLUGIN_URL."js/gpx2chart$minimized.js") ;
+
+        wp_register_script('strftime', GPX2CHART_PLUGIN_URL."js/helper/strftime${minimized}.js") ;
+        wp_register_script('sprintf', GPX2CHART_PLUGIN_URL."js/helper/sprintf${minimized}.js") ;
+        wp_register_script('excanvas', GPX2CHART_PLUGIN_URL."js/flot/excanvas${minimized}.js", array('jquery'), '2.1.4', false);
+
+        wp_register_script('flot', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot${minimized}.js", array('jquery','excanvas','strftime','sprintf'), '2.1.4', false);
+        wp_register_script('flotcross', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.crosshair$minimized.js", array('jquery','flot'), '2.1.4', false);
+        wp_register_script('flotnavigate', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.navigate$minimized.js", array('jquery','flot'), '2.1.4', false);
+        wp_register_script('flotselection', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.selection$minimized.js", array('jquery','flot'), '2.1.4', false);
+
+        /* Only register Highcharts if library is present */
+        if (file_exists(join(DIRECTORY_SEPARATOR, array(GPX2CHART_PLUGIN_DIR,'js','highcharts')))) {
+            $minimized='';
+            if ($this->debug) {
+                $minimized='.src';
+            }
+            wp_register_script('highcharts', GPX2CHART_PLUGIN_URL."js/highcharts/highcharts$minimized.js", array('jquery'), '2.1.4', false);
+            wp_register_script('highchartsexport', GPX2CHART_PLUGIN_URL."js/highcharts/modules/exporting$minimized.js", array('jquery','highcharts'), '2.1.4', false);
+         }
+	}
 
 	public static function formattime($value) {
             return strftime('%H:%M:%S',$value);
 	}
-
 
 	function admin_menu($not_used){
     // place the info in the plugin settings page
@@ -191,8 +225,7 @@ class GPX2CHART {
         $rendername='render_'.$rendername;
         $render=new $rendername();
 
-        wp_print_scripts('gpx2chart');
-        foreach ($render->script_depencies as $depency) wp_print_scripts($depency);
+#       foreach ($render->script_depencies as $depency) wp_enqueue_script($depency);
 
         /*
          * Evaluate mandatory attributes
