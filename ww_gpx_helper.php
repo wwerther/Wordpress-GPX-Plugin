@@ -332,6 +332,7 @@ class WW_GPX implements Countable, ArrayAccess{
             case 'ELE': {
                 if ($this->state(-2) == 'TRKPT') {
                     $this->currenttp['elevation']=$cdata;
+                    $this->meta->elevation=true;
                 }
                 break;
             }
