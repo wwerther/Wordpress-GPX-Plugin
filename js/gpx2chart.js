@@ -17,7 +17,10 @@ if (! window.gpx2chartdebug) {
   }
 }
 
-// define data-container
-if (! gpx2chartdata) {
-  var gpx2chartdata=new Array();
+if (! gpx2chart) { 
+  var gpx2chart=new Array();
+  gpx2chart['options']=new Array();
+  gpx2chart['series']=new Array();
+  gpx2chart['data']=new Array();
+  gpx2chart['handle']=new Array();
 }
