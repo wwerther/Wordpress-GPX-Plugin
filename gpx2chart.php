@@ -16,49 +16,46 @@ Max WP Version: 3.3.1
 define ('GPX2CHART_PLUGIN_VER','0.2.2');
 
 // Include helper
-require_once(dirname(__FILE__).'/ww_gpx_helper.php');
+require_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'ww_gpx_helper.php');
+
+if ( ! defined( 'WP_CONTENT_URL' ) ) define( 'WP_CONTENT_URL', get_option( 'siteurl' ) . '/wp-content' );
+if ( ! defined( 'WP_CONTENT_DIR' ) ) define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' );
+if ( ! defined( 'WP_PLUGIN_URL' ) )  define( 'WP_PLUGIN_URL', WP_CONTENT_URL. '/plugins' );
+if ( ! defined( 'WP_PLUGIN_DIR' ) )  define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR .DIRECTORY_SEPARATOR. 'plugins' );
 
 if (! defined('GPX2CHART_SHORTCODE')) define('GPX2CHART_SHORTCODE','gpx2chart');
-
-if ( ! defined( 'WP_CONTENT_URL' ) )
-      define( 'WP_CONTENT_URL', get_option( 'siteurl' ) . '/wp-content' );
-if ( ! defined( 'WP_CONTENT_DIR' ) )
-      define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' );
-if ( ! defined( 'WP_PLUGIN_URL' ) )
-      define( 'WP_PLUGIN_URL', WP_CONTENT_URL. '/plugins' );
-if ( ! defined( 'WP_PLUGIN_DIR' ) )
-      define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins' );
-define ("GPX2CHART_PLUGIN_URL", WP_PLUGIN_URL."/gpx2chart/");
-#define ("GPX2CHART_PLUGIN_ICONS_URL", GPX2CHART_PLUGIN_URL."icons/");
-
+if (! defined('GPX2CHART_PLUGIN_URL')) define ("GPX2CHART_PLUGIN_URL", WP_PLUGIN_URL."/gpx2chart/");
+if (! defined('GPX2CHART_PLUGIN_DIR')) define ("GPX2CHART_PLUGIN_DIR", WP_PLUGIN_DIR.DIRECTORY_SEPARATOR."gpx2chart".DIRECTORY_SEPARATOR);
+if (! defined('GPX2CHART_PLUGIN_ICONS_URL')) define ("GPX2CHART_PLUGIN_ICONS_URL", GPX2CHART_PLUGIN_URL."/icons/");
+if (! defined('GPX2CHART_PROFILES')) define ("GPX2CHART_PROFILES",GPX2CHART_PLUGIN_DIR."profiles".DIRECTORY_SEPARATOR);
+if (! defined('GPX2CHART_CONTAINERPREFIX')) define ("GPX2CHART_CONTAINERPREFIX",'GPX2CHART');
 
 class GPX2CHART {
 
-    static $container_name='GPX2CHART';
+    static $container_name=GPX2CHART_CONTAINERPREFIX;
     static $default_rendername='flot';
-	static $add_script;
+    static $state;
+    static $configuration;
 
-    static $debug=true;
+	public $instance=0;
+    public $debug=true;
 
-    static function debug ($text,$headline='') {
-        if (self::$debug) {
+    public function debug ($text,$headline='') {
+        if ($this->debug) {
             return "\n<!-- gpx2chart $headline\n$text\n gpx2chart -->\n";
         }
         return '';
     }
 
     public function __construct() {
+        add_action('admin_menu', array(&$this, 'admin_menu'));
+		add_shortcode(GPX2CHART_SHORTCODE, array(&$this, 'handle_shortcode'));
+
         $this->init();
     }
  
-	public static function init() {
-
-        add_action('admin_menu', array(__CLASS__, 'admin_menu'));
-
-		add_shortcode(GPX2CHART_SHORTCODE, array(__CLASS__, 'handle_shortcode'));
-
-        self::$add_script=0;
-        if (self::$debug) {
+	protected function init() {
+        if ($this->debug) {
             wp_register_script('strftime', plugins_url('/js/helper/strftime.js',__FILE__)) ;
             wp_register_script('sprintf', plugins_url('/js/helper/sprintf.js',__FILE__)) ;
 
@@ -119,28 +116,62 @@ class GPX2CHART {
  * It provides support for the necessary parameters that are defined in
  * http://codex.wordpress.org/Shortcode_API
  */
-	public static function handle_shortcode( $atts, $content=null, $code="" ) {
+	public function handle_shortcode( $atts, $content=null, $code="" ) {
         // $atts    ::= array of attributes
         // $content ::= text within enclosing form of shortcode element
         // $code    ::= the shortcode found, when == callback name
         //           [gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="heartrate cadence distance speed") (display="heartrate cadence elevation speed")]
-    	self::$add_script++;
+    	$this->instance++;
 
         /* Check if we are in "debug mode". Create a more verbose output then */
-        self::$debug=self::$debug ? self::$debug : in_array('debug',$atts);
+        $this->debug=in_array('debug',$atts) ? true : $this->debug;
 
-        $divno=self::$add_script;
+        /* Determine the profile that should be used to display this chart */
+        $this->profile=in_array('profile',$atts) ? basename($atts['profile']).'.profile' : 'default.profile';
+
+        $this->configuration['container.name']=GPX2CHART_CONTAINERPREFIX;
+        $this->configuration['icons.url']=GPX2CHART_PLUGIN_ICONS_URL;
+        $this->configuration['headline']='Running';
+
+        /* Load the profile */
+        $profilecontent=file_get_contents(GPX2CHART_PROFILES.DIRECTORY_SEPARATOR.$this->profile);
+
+        /* Read the default settings of this template */
+        $pattern='/#=(\S+?):(.+?)\n/';
+        $profilecontent=preg_replace_callback($pattern,array(&$this,'readconfiguration'),$profilecontent);
+
+        /* Override configuration with values defined in attributes */
+        foreach ($atts as $key=>$value) {
+            if (is_int($key)) {
+                if (preg_match('#(.+)(?:=["\'](.+)["\'])#',$value,$match)) {;
+                    $key=$match[1];
+                    $value=$match[2];
+                } else {
+                    $key=$value;
+                }
+            };
+            $key=str_replace('_','.',$key);
+            $key=str_replace('-','.',$key);
+            $this->configuration[$key]=$value;
+        }
+
+        $this->configuration['debug']=$this->debug;
+        $this->configuration['profile']=$this->profile;
+        $this->configuration['instance']=$this->instance;
+        $this->configuration['id']=$this->configuration['container.name'].$this->configuration['instance'];
+
+
+        $divno=$this->instance;
 
  
         $error=array();
-        $container=self::$container_name.$divno;
+        $container=$this->configuration['id'];
         $directcontent='';
-        if ($divno==1) {
+        if ($this->configuration['instance']==1) {
             $directcontent.=self::basicscript();
         }
 
-        $directcontent.=self::debug(var_export ($atts,true),"Attributes");
-
+        $directcontent.=$this->debug(var_export ($atts,true),"Attributes");
 
         /* Scan for available rendering engines */
         $dh  = opendir(dirname(__FILE__).'/render');
@@ -351,14 +382,16 @@ class GPX2CHART {
 
         $xaxis=array();
         array_push($xaxis,$render->create_xaxis());
+
+        $dataarrays='';
     
-        $directcontent.='<script type="text/javascript">'."gpx2chartdata[$divno]=new Array();";
+        $dataarrays.='<script type="text/javascript">'."gpx2chartdata[$divno]=new Array();";
         foreach ($process as $elem) {
-           $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
+           $dataarrays.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
         }
 
         foreach (array('totaldistance','totalinterval','totalrise','totalfall','lat','lon') as $elem) {
-           $directcontent.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
+           $dataarrays.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
  #           $directcontent.=$jsvar[$elem]."={".join(",",$gpx->return_assoc($elem) )."};\n";
         }
 
@@ -367,7 +400,11 @@ class GPX2CHART {
 
 #        $directcontent.=$jsvar['lat']."={".join(",",$gpx->return_assoc('lat') )."};\n";
 #        $directcontent.=$jsvar['lon']."={".join(",",$gpx->return_assoc('lon') )."};\n";
-        $directcontent.="</script>\n";
+        $dataarrays.="</script>\n";
+
+        $this->data['data.js.dataarray']=$dataarrays;
+
+        $directcontent.=$dataarrays;
 
         $directcontent.=$render->rendercontainer($container,$metadata);
         $directcontent.=$render->renderoptions("flotoptions$divno",join(',',$xaxis),join(',',$yaxis));
@@ -379,13 +416,77 @@ class GPX2CHART {
         $directcontent.="</div>";
 
 
-        $directcontent.=file_get_contents(GPX2CHART_PLUGIN_URL.'/jogging.profile');
+        # Replace the default variables
+        $pattern='/\{(\S+?)\}/';
+        $filecontent=preg_replace_callback($pattern,array(__CLASS__,'getvalue'),$profilecontent);
 
+        # Evaluate data-condition fields
+        #   Therefore search for matching HTML-tags containing the data-condition attribute. Currently "tag in tag" is not supported!
+        #       take the data-condition and evaluate the string if it is equal, greater or lower (in case of integer). 
+        #       If no operator is present check wether a string is present at all.
+        #   if the evaluation is successful leave the marked code in the HTML-body else remove it.
+        $pattern='#<(\w+)\s(?:.{0,}\s+)?data-condition="(\S*)".*?>(.*?)</\1>#iXu';
+        $filecontent=preg_replace_callback($pattern,array(__CLASS__,'datacondition'),$filecontent);
+
+        $directcontent.=$filecontent;
         $directcontent.="";
 
 
         return $directcontent;
 
+    }
+
+    public function datacondition($matches) {
+        $validate=$matches[2];
+        if (preg_match('#(.*)([=<>]+)(.*)#',$validate,$operation)) {
+            switch ($operation[2]) {
+                case '=':
+                    if ($operation[1]==$operation[3]) return "<!-- $operation[1]:$operation[2]:$operation[3] -->".$matches[0];
+#                   return '<!-- !EQU -->';
+                break;
+                case '<':
+                    if ($operation[1]==$operation[3]) return $matches[0];
+#                   return '<!-- !LT -->';
+                break;
+                case '>':
+                    if ($operation[1]==$operation[3]) return $matches[0];
+#                   return '<!-- !GT -->';
+                break;
+                default:
+                    return "<!-- unknown operation $operation[2] in $matches[2] -->";
+                break;
+            }
+        } else {
+            if (strlen($matches[2])>0) return '<!-- VAL -->'.$matches[0];
+#            return "<!-- COND:$matches[2] -->";
+        }
+        return '';
+    }
+
+    protected function readconfiguration($matches) {
+        $value=$matches[2];
+        $value=preg_replace('/[\n\r]/','',$value);
+        self::$state[$matches[1]]=$value;
+        $this->configuration[$matches[1]]=$value;
+        return '';
+    }
+
+    public function getvalue($matches) {
+        switch ($matches[1]) {
+            case 'configuration':
+                return 'Configuration:'.var_export ($this->configuration,true)."\nData:".join(',',array_keys($this->data))."\n";
+            break;
+            default:
+                if (array_key_exists($matches[1],$this->configuration)) {
+                    return $this->configuration[$matches[1]];
+                } else {
+                    if (array_key_exists($matches[1],$this->data)) {
+                        return $this->data[$matches[1]];
+                    }
+                    return '';
+                }
+            break;
+        }
     }
 
     function basicscript() {
