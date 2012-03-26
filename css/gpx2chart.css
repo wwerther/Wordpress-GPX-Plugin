@@ -26,12 +26,12 @@ Version: 0.2
 
 .gpx2charttooltip {
 	border: 1px solid #000;
+	width: 250px;
 	background-color: #FFF;
 	position: fixed;
 	font-size:smaller;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 	z-index: 10;
-
 }
 
 .gpx2charttoolhead {
