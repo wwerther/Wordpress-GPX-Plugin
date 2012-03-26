@@ -139,13 +139,6 @@ EOT;
 
     public function rendercontainer ($container,$metadata) {
       return <<<EOT
-            <div id="${container}chart" style="width:576px;height:300px" class="gpx2chartchart"></div>
-            <div id="${container}meta" class="gpx2chartmeta">
-            $metadata
-            </div>
-            <div id="${container}tooltip" class="gpx2charttooltip">
-            </div>
-            <div id="${container}debug" class="gpx2chartdebug" > </div>
 EOT;
     }
 

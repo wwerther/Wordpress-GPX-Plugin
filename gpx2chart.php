@@ -12,6 +12,7 @@ Min WP Version: 3.1.2
 Max WP Version: 3.3.1
  */
 
+#
 
 define ('GPX2CHART_PLUGIN_VER','0.2.2');
 
@@ -34,8 +35,9 @@ class GPX2CHART {
 
     static $container_name=GPX2CHART_CONTAINERPREFIX;
     static $default_rendername='flot';
-    static $state;
-    static $configuration;
+
+    public $configuration=Array();
+    public $data=Array();
 
 	public $instance=0;
     public $debug=true;
@@ -49,12 +51,13 @@ class GPX2CHART {
 
     public function __construct() {
         add_action('admin_menu', array(&$this, 'admin_menu'));
+        add_action('init', array(&$this, 'init'));
 		add_shortcode(GPX2CHART_SHORTCODE, array(&$this, 'handle_shortcode'));
 
-        $this->init();
     }
  
-	protected function init() {
+	public function init() {
+        load_plugin_textdomain('GPX2Chart-plugin', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/');
         if ($this->debug) {
             wp_register_script('strftime', plugins_url('/js/helper/strftime.js',__FILE__)) ;
             wp_register_script('sprintf', plugins_url('/js/helper/sprintf.js',__FILE__)) ;
@@ -68,6 +71,8 @@ class GPX2CHART {
             wp_register_script('flotcross', plugins_url('/js/flot/jquery.flot.crosshair.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('flotnavigate', plugins_url('/js/flot/jquery.flot.navigate.js',__FILE__), array('jquery','flot'), '2.1.4', false);
             wp_register_script('flotselection', plugins_url('/js/flot/jquery.flot.selection.js',__FILE__), array('jquery','flot'), '2.1.4', false);
+
+            wp_register_script('gpx2chart', plugins_url('/js/gpx2chart.js',__FILE__)) ;
         } else {
             wp_register_script('strftime', plugins_url('/js/helper/strftime.min.js',__FILE__)) ;
             wp_register_script('sprintf', plugins_url('/js/helper/sprintf.min.js',__FILE__)) ;
@@ -92,7 +97,7 @@ class GPX2CHART {
 
 	function admin_menu($not_used){
     // place the info in the plugin settings page
-		add_options_page(__('GPX2Chart Settings', 'GPX2Chart'), __('GPX2Chart', 'GPX2Chart'), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
+		add_options_page(__('GPX2Chart Settings', 'GPX2Chart-plugin'), __('GPX2Chart', 'GPX2Chart-plugin'), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
 	}
 
 	public static function options_page_gpx() {
@@ -123,6 +128,11 @@ class GPX2CHART {
         //           [gpx2chart href="<GPX-Source>" (maxelem="51") (debug) (width="90%") (metadata="heartrate cadence distance speed") (display="heartrate cadence elevation speed")]
     	$this->instance++;
 
+        /* Clear configuration and data array to determine fresh settings */
+        $this->configuration=Array();
+        $this->data=Array();
+        $this->gpx=null;
+
         /* Check if we are in "debug mode". Create a more verbose output then */
         $this->debug=in_array('debug',$atts) ? true : $this->debug;
 
@@ -131,7 +141,6 @@ class GPX2CHART {
 
         $this->configuration['container.name']=GPX2CHART_CONTAINERPREFIX;
         $this->configuration['icons.url']=GPX2CHART_PLUGIN_ICONS_URL;
-        $this->configuration['headline']='Running';
 
         /* Load the profile */
         $profilecontent=file_get_contents(GPX2CHART_PROFILES.DIRECTORY_SEPARATOR.$this->profile);
@@ -154,24 +163,16 @@ class GPX2CHART {
             $key=str_replace('-','.',$key);
             $this->configuration[$key]=$value;
         }
+        $this->configuration['headline']=ucfirst($this->configuration['type']);
 
         $this->configuration['debug']=$this->debug;
         $this->configuration['profile']=$this->profile;
         $this->configuration['instance']=$this->instance;
         $this->configuration['id']=$this->configuration['container.name'].$this->configuration['instance'];
 
-
         $divno=$this->instance;
-
  
         $error=array();
-        $container=$this->configuration['id'];
-        $directcontent='';
-        if ($this->configuration['instance']==1) {
-            $directcontent.=self::basicscript();
-        }
-
-        $directcontent.=$this->debug(var_export ($atts,true),"Attributes");
 
         /* Scan for available rendering engines */
         $dh  = opendir(dirname(__FILE__).'/render');
@@ -190,6 +191,7 @@ class GPX2CHART {
         $rendername='render_'.$rendername;
         $render=new $rendername();
 
+        wp_print_scripts('gpx2chart');
         foreach ($render->script_depencies as $depency) wp_print_scripts($depency);
 
         /*
@@ -203,16 +205,20 @@ class GPX2CHART {
         $maxelem=array_key_exists('maxelem',$atts) ? intval($atts['maxelem']) : 51;
         $width=array_key_exists('width',$atts) ? $atts['width'] : '90%';
 
-        /* Create the master container */
-        $directcontent.='<div id="'.$container.'" class="gpx2chart" style="width:'.$width.'"'.">\n";
-
         # read in the GPX-file
         $gpx=new WW_GPX($atts['href']);
+        $this->gpx=$gpx;
+
         # try to parse the XML only if we don't have errors yet
         if ((count($error)==0) and (! $gpx->parse())) array_push($error,"Error parsing GPX-File");
 
         /* In case of errors we abort here */
-        if (count($error)>0) return $directcontent."<div class='gpx2charterror'>".join("<br/>\n",$error)."</div></div>";
+        if (count($error)>0) {
+            $this->gpx=null;
+            $this->configuration['error']=1;
+            $this->configuration['error.text']=join("<br/>\n",$error);
+            return $this->renderpage($profilecontent);
+        }
 
         # Input series provided by GPX-files are: 
         #                                               (time, lat, lon) heartrate, cadence, elevation 
@@ -222,40 +228,6 @@ class GPX2CHART {
         #                                               heartrate, cadence, elevation, speed
         # Series that make sense to be displayed additional in the meta-data: 
         #                                               time, totaldistance, totalinterval, totalrise, totalfall
-
-        $colors['heartrate']='#AA4643';
-        $colors['cadence']='#4572A7';
-        $colors['elevation']='#89A54E';
-        $colors['speed']='#CACA00';
-        $colors['time']='#000000';
-
-        $colors['totaldistance']='#000000';
-        $colors['totalinterval']='#000000';
-        $colors['totalrise']='#000000';
-        $colors['totalfall']='#000000';
-   
-        $axistitle['heartrate']='Heartrate (bpm)';
-        $axistitle['cadence']='Cadence (rpm)';
-        $axistitle['elevation']='Elevation (m)';
-        $axistitle['speed']='Speed (km/h)';
-
-        $seriesname['heartrate']='Heartrate';
-        $seriesname['cadence']='Cadence';
-        $seriesname['elevation']='Elevation';
-        $seriesname['speed']='Speed';
-        $seriesname['distance']='Distance';
-        $seriesname['time']='Time';
-        $seriesname['totaldistance']='Distance';
-        $seriesname['totalinterval']='Time';
-        $seriesname['totalrise']='Rise';
-        $seriesname['totalfall']='Fall';
-        $seriesname['lat']='Latitude';
-        $seriesname['lon']='Longitude';
-
-        $axisleft['heartrate']=true;
-        $axisleft['cadence']=true;
-        $axisleft['elevation']=false;
-        $axisleft['speed']=false;
 
         $jsvar['xAxis']="gpx2chartdata[$divno]['xAxis']";
 
@@ -271,14 +243,6 @@ class GPX2CHART {
         $jsvar['lat']="gpx2chartdata[$divno]['lat']";
         $jsvar['lon']="gpx2chartdata[$divno]['lon']";
 
-        # Formatter for Axis-Labels
-        $formatter['heartrate']='return value.toFixed(axis.tickDecimals) + "bpm";';
-        $formatter['cadence']='return value.toFixed(axis.tickDecimals) + "rpm";';
-        $formatter['elevation']='return value.toFixed(axis.tickDecimals) + "m";';
-        $formatter['speed']='return value.toFixed(axis.tickDecimals);';
-        $formatter['distance']='return value.toFixed(axis.tickDecimals) + "km";';
-        $formatter['time']='return value.toFixed(axis.tickDecimals) + "h";';
-
         # Formatter for Tooltip-Values
         $labelformat['heartrate']='return value + " bpm";';
         $labelformat['cadence']='return value + " rpm";';
@@ -288,23 +252,10 @@ class GPX2CHART {
         $labelformat['totalinterval']='return sprintf("%02d:%02d:%02d",Math.floor(value/3600),Math.floor(value/60)%60,value%60);';
         $labelformat['totalrise']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
         $labelformat['totalfall']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
-
-        $dashstyle['heartrate']='shortdot';
-        $seriestype['elevation']='areaspline';
-
+       
         # Adjust the display of elevation a little bit, so the graph does not look to rough if we don't have high differences between min and max
         # In this case we have at least 40m that are displayed
         $additionalparameters['elevation']='min: '.($gpx->min('elevation')-20).',max: '.($gpx->max('elevation')+20).',';
-
-        $params=array('heartrate','cadence','elevation','speed');
-        foreach ($params as $param) {
-            $axistitle[$param]=array_key_exists('title_'.$param,$atts) ? $atts['title_'.$param] : $axistitle[$param];
-            $colors[$param]=array_key_exists('color_'.$param,$atts) ? $atts['color_'.$param] : $colors[$param];
-            $dashstyle[$param]=array_key_exists('dashstyle_'.$param,$atts) ? $atts['dashstyle_'.$param] : $dashstyle[$param];
-            $seriestype[$param]=array_key_exists('seriestype_'.$param,$atts) ? $atts['seriestype_'.$param] : $seriestype[$param];
-        }
-
-        $enableexport='false';
 
         # The maximum series that are available
         $process=array('heartrate','cadence','elevation','speed');
@@ -318,37 +269,11 @@ class GPX2CHART {
         $process=array_diff($process,$gpx->getunavailable());
         $metadata=array_diff($metadata,$gpx->getunavailable());
 
-        $title = $gpx->meta->name;
-        $subtitle=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
+        $this->configuration['title'] = $gpx->meta->name;
+        $this->configuration['subtitle']=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
 
         $gpx->setmaxelem($maxelem);
 #       $gpx->setmaxelem(0);
-
-        $met=array();
-        foreach ($metadata as $elem) {
-            $text="<tr><th style=\"padding: 0px 0px 0px 10px;border:none;color:".$colors[$elem].";\">".$seriesname[$elem]."</th><td style=\"padding: 0px 0px 0px 10px;border:none\">";
-            switch ($elem) {
-                case 'heartrate': {
-                    $text.=$gpx->averageheartrate();
-                    break;
-                }
-                case 'cadence': {
-                    $text.=$gpx->averagecadence();
-                    break;
-                }
-                case 'speed': {
-                    $text.=$gpx->averagespeed();
-                    break;
-                }
-                case 'distance': {
-                    $text.=$gpx->totaldistance();
-                    break;
-                }
-            }
-            $text.=" ".$seriesunit[$elem]."</td></tr>";
-            array_push($met,$text);
-        }
-        $metadata="<table>".join(' ',$met)."</table>";
 
         $yaxis=array();
         $series=array();
@@ -357,8 +282,8 @@ class GPX2CHART {
 
        # We need additional entries for names and units
         foreach (array('time','distance') as $elem) {
-            array_push($series_names,"'".$elem."':'".$seriesname[$elem]."'");
-            array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
+            array_push($series_names,"'".$elem."':'".$this->configuration["$elem.series.name"]."'");
+            array_push($series_units,"'".$this->configuration["$elem.series.name"]."':'".$seriesunit[$elem]."'");
         }
 
         $series_units = join (',',$series_units);
@@ -371,25 +296,22 @@ class GPX2CHART {
         $series_names=array();
         $axisno=1;
         foreach ($process as $elem) {
-            array_push($yaxis,$render->create_axis($axistitle[$elem],$colors[$elem],$axisleft[$elem],$axisno,$formatter[$elem],$additionalparameters[$elem]));
-            array_push($series,$render->create_series($elem,$seriesname[$elem],$colors[$elem],$axisno,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
-    #        array_push($series_units,"'".$seriesname[$elem]."':'".$seriesunit[$elem]."'");
+            array_push($yaxis,$render->create_axis($this->configuration["$elem.axis.title"],$this->configuration["$elem.color"],$this->configuration["$elem.axis.left"],$axisno,$this->configuration["$elem.axis.format"],$additionalparameters[$elem]));
+            array_push($series,$render->create_series($elem,$this->configuration["$elem.series.name"],$this->configuration["$elem.color"],$axisno,$jsvar[$elem],$this->configuration["$elem.dash.style"],$this->configuration["$elem.series.type"],$labelformat[$elem]));
             $axisno++;
         }
         foreach (array('totaldistance','totalinterval' /*,'totalrise','totalfall','lat','lon' */) as $elem) {
-            array_push($series,$render->create_series($elem,$seriesname[$elem],$colors[$elem],-1,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
+            array_push($series,$render->create_series($elem,$this->configuration["$elem.series.name"],$this->configuration["$elem.color"],-1,$jsvar[$elem],$dashstyle[$elem],$seriestype[$elem],$labelformat[$elem]));
         }
 
         $xaxis=array();
         array_push($xaxis,$render->create_xaxis());
 
         $dataarrays='';
-    
         $dataarrays.='<script type="text/javascript">'."gpx2chartdata[$divno]=new Array();";
         foreach ($process as $elem) {
            $dataarrays.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
         }
-
         foreach (array('totaldistance','totalinterval','totalrise','totalfall','lat','lon') as $elem) {
            $dataarrays.=$jsvar[$elem]."= new Array(".join(",",$gpx->return_pair($elem) ).");\n";
  #           $directcontent.=$jsvar[$elem]."={".join(",",$gpx->return_assoc($elem) )."};\n";
@@ -403,22 +325,22 @@ class GPX2CHART {
         $dataarrays.="</script>\n";
 
         $this->data['data.js.dataarray']=$dataarrays;
+        $this->data['data.js.options']=$render->renderoptions("flotoptions$divno",join(',',$xaxis),join(',',$yaxis));
 
-        $directcontent.=$dataarrays;
+        $this->data['data.js.series']=$render->renderseries("flotseries$divno",join(',',$series));
 
-        $directcontent.=$render->rendercontainer($container,$metadata);
-        $directcontent.=$render->renderoptions("flotoptions$divno",join(',',$xaxis),join(',',$yaxis));
-        $directcontent.=$render->renderseries("flotseries$divno",join(',',$series));
-        $directcontent.=$render->renderplot($container."chart","flotseries$divno","flotoptions$divno");
-        $directcontent.=$render->renderaddon($container);
+        $this->data['data.js.render']=$render->renderplot($this->configuration['id']."chart","flotseries$divno","flotoptions$divno");
+        $this->data['data.js.addon']=$directcontent.=$render->renderaddon($this->configuration['id']);
 
 
-        $directcontent.="</div>";
+        return $this->renderpage($profilecontent);
 
+    }
 
+    private function renderpage($profilecontent) {
         # Replace the default variables
         $pattern='/\{(\S+?)\}/';
-        $filecontent=preg_replace_callback($pattern,array(__CLASS__,'getvalue'),$profilecontent);
+        $profilecontent=preg_replace_callback($pattern,array(__CLASS__,'getvalue'),$profilecontent);
 
         # Evaluate data-condition fields
         #   Therefore search for matching HTML-tags containing the data-condition attribute. Currently "tag in tag" is not supported!
@@ -426,19 +348,13 @@ class GPX2CHART {
         #       If no operator is present check wether a string is present at all.
         #   if the evaluation is successful leave the marked code in the HTML-body else remove it.
         $pattern='#<(\w+)\s(?:.{0,}\s+)?data-condition="(\S*)".*?>(.*?)</\1>#iXu';
-        $filecontent=preg_replace_callback($pattern,array(__CLASS__,'datacondition'),$filecontent);
-
-        $directcontent.=$filecontent;
-        $directcontent.="";
-
-
-        return $directcontent;
-
+        $profilecontent=preg_replace_callback($pattern,array(__CLASS__,'datacondition'),$profilecontent);
+        return $profilecontent;
     }
 
     public function datacondition($matches) {
         $validate=$matches[2];
-        if (preg_match('#(.*)([=<>]+)(.*)#',$validate,$operation)) {
+        if (preg_match('#(.*)([=<>&]+)(.*)#',$validate,$operation)) {
             switch ($operation[2]) {
                 case '=':
                     if ($operation[1]==$operation[3]) return "<!-- $operation[1]:$operation[2]:$operation[3] -->".$matches[0];
@@ -451,6 +367,9 @@ class GPX2CHART {
                 case '>':
                     if ($operation[1]==$operation[3]) return $matches[0];
 #                   return '<!-- !GT -->';
+                break;
+                case '&':
+                    if ($operation[1] and $operation[3]) return $matches[0];
                 break;
                 default:
                     return "<!-- unknown operation $operation[2] in $matches[2] -->";
@@ -466,7 +385,8 @@ class GPX2CHART {
     protected function readconfiguration($matches) {
         $value=$matches[2];
         $value=preg_replace('/[\n\r]/','',$value);
-        self::$state[$matches[1]]=$value;
+        if ($value=='false') $value=false;
+        if ($value=='true') $value=true;
         $this->configuration[$matches[1]]=$value;
         return '';
     }
@@ -476,42 +396,70 @@ class GPX2CHART {
             case 'configuration':
                 return 'Configuration:'.var_export ($this->configuration,true)."\nData:".join(',',array_keys($this->data))."\n";
             break;
+
+            case 'calc.heartrate.avg':
+                if (is_null($this->gpx)) return '';
+                return $this->gpx->averageheartrate();
+            break;
+            case 'calc.cadence.avg':
+                if (is_null($this->gpx)) return '';
+                return $this->gpx->averagecadence();
+            break;
+            case 'calc.speed.avg':
+                if (is_null($this->gpx)) return '';
+                return $this->gpx->averagespeed();
+            case 'calc.distance.total':
+                if (is_null($this->gpx)) return '';
+                return $this->gpx->totaldistance();
+            break;
+            case 'gpx.contain.cadence':
+                if (is_null($this->gpx)) return '';
+                if (in_array('cadence',$this->gpx->getunavailable())) return '';
+                return 'true';
+            break;
+            case 'gpx.contain.heartrate':
+                if (is_null($this->gpx)) return '';
+                if (in_array('heartrate',$this->gpx->getunavailable())) return '';
+                return 'true';
+            break;
             default:
+
+                list($module,$function,$series,$type)=explode('.',$matches[1]);
+
+                if ($module=='gpx') {
+                    if (is_null($this->gpx)) return '';
+
+                    if ($function=='calc') {
+                        switch ($type) {
+                            case 'min':
+                                return $this->gpx->min($series);
+                            break;
+                            case 'max':
+                                return $this->gpx->max($series);
+                            break;
+                            case 'avg':
+                                return $this->gpx->avg($series);
+                            break;
+                            default:
+                                return "GPX: unknown function $type on $series";
+                        }
+                    } elseif ($function=='contain') {
+                        return $this->gpx->contain($series);
+                    }
+                }
+
                 if (array_key_exists($matches[1],$this->configuration)) {
                     return $this->configuration[$matches[1]];
                 } else {
                     if (array_key_exists($matches[1],$this->data)) {
                         return $this->data[$matches[1]];
                     }
-                    return '';
+                   # return "<!-- next $matches[1] $module:$function:$series:$type -->";
+                   return '';
                 }
             break;
         }
     }
-
-    function basicscript() {
-    return <<<EOT
-        <!-- Initial GPX2Chart Javascript -->
-        <script type="text/javascript">
-           if (! window.gpx2chartdebug) {
-               function gpx2chartdebug(text, container) {
-                    if (console) {
-                        if (console.debug) {
-                            console.debug(text);
-                        }
-                    }
-                    if (container) {
-                        jQuery(container).html(text)
-                    }
-               }
-           }
-           if (! gpx2chartdata) {
-               var gpx2chartdata=new Array();
-           }
-        </script>
-EOT;
-    }
-
 
 }
  

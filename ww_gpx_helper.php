@@ -180,6 +180,7 @@ class WW_GPX implements Countable, ArrayAccess{
         $this->currenttp=null;
         $this->meta->cadence=false;
         $this->meta->heartrate=false;
+        $this->meta->elevation=false;
 
         if (! $data=@file_get_contents($this->filename)) {
             return false;
@@ -275,6 +276,7 @@ class WW_GPX implements Countable, ArrayAccess{
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
+                $this->track->meta->elevation=true;
                 array_push($this->state,$tag);
                 break;
             }
@@ -518,6 +520,13 @@ class WW_GPX implements Countable, ArrayAccess{
         if (! $this->meta->heartrate) array_push($unavailable,'heartrate');
         if (! $this->meta->cadence) array_push($unavailable,'cadence');
         return $unavailable;
+    }
+
+    public function contain($series) {
+        if ($series=='heartrate') return $this->meta->heartrate;
+        if ($series=='cadence') return $this->meta->cadence;
+        if ($series=='elevation') return $this->meta->elevation;
+        return '';
     }
 
     public function dump () {

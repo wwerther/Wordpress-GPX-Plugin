@@ -3,7 +3,7 @@ Athletics_pictogram.svg		By Thadius856 (SVG conversion) & Parutakupiu (original 
 Climbing_pictogram.svg		By chris ? (Own work) [Public domain], via Wikimedia Commons
 Cycling_road_pictogram.svg	By Thadius856 (SVG conversion) & Parutakupiu (original image) (Own work) [Public domain or Public domain], via Wikimedia Commons
 Swimming_pictogram.svg		By Thadius856 (SVG conversion) & Parutakupiu (original image) (Own work) [Public domain or Public domain], via Wikimedia Commons
-
+Dialog-error.png		By The people from the Tango! project (The Tango! Desktop Project) [Public domain or Public domain], via Wikimedia Commons
 
 By chris ? (Own work) [Public domain], via Wikimedia Commons
 	http://commons.wikimedia.org/wiki/File%3AClimbing_pictogram.svg
@@ -29,3 +29,7 @@ By Thadius856 (SVG conversion) & Parutakupiu (original image) (Own work) [Public
 	http://commons.wikimedia.org/wiki/File%3AAthletics_pictogram.svg
 	Athletics pictogram
 		//upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Athletics_pictogram.svg/32px-Athletics_pictogram.svg.png
+
+
+By The people from the Tango! project (The Tango! Desktop Project) [Public domain or Public domain], via Wikimedia Commons
+	http://commons.wikimedia.org/wiki/File%3ADialog-error.svg

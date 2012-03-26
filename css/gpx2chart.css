@@ -1,7 +1,7 @@
 /*
 Description: Stylesheet for GPX2Chart
 Author: Walter Werther
-Version: 0.1
+Version: 0.2
 */
 
 /* ----------- GPX2Chart -------------*/
@@ -13,7 +13,6 @@ Version: 0.1
 
 .gpx2charterror {
 	color:#FF0000;
-	background-color: #FFF;
 }
 
 .gpx2chartmeta {
