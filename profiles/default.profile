@@ -7,40 +7,38 @@ GPX2Chart-Configuration:
 
 Define Defaults for rendering the charts. These values can be overwritten by values defined in the shortcode
 
-Set the engine that should be used for this template (flot, highcharts, jqplot...)
+################ Set the engine that should be used for this template (flot, highcharts, jqplot...)
 #=engine:flot
+#=css.inline:true
 #=type:running
+#=maxelem:0
+#=data.embed:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall lat lon
+#=data.series:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall lat lon
+#=data.yaxis.show:cadence heartrate elevation speed
+#=graph.meta.display:
 
-Dimensions
+################ Dimensions
 #=chart.width:576px
 #=chart.height:300px
 
-Define the default-colors
+################ Define the default-colors
 #=heartrate.color:#AA4643
 #=cadence.color:#4572A7
 #=elevation.color:#89A54E
 #=speed.color:#CACA00
 #=time.color:#000
 
-Where should the axis be
-#=heartrate.axis.left:true
-#=cadence.axis.left:true
-#=elevation.axis.left:false
-#=speed.axis.left:true
-
-#=elevation.speed:false
-#=heartrate.dashstyle:shortdot
-#=elevation.seriestype:areaspline
-#=css.inline:true
-
+################ What unit's should be used?
 #=heartrate.unit:bpm
 #=cadence.unit:rpm
+#=elevation.unit:m
 #=speed.unit:km/h
 
-#=heartrate.title:Heartrate
-#=cadence.title:Cadence
-#=speed.title:Speed
-#=elevation.title:Altitude
+################ What's the name of the series in the legend?
+#=heartrate.legend.title:Heartrate
+#=cadence.legend.title:Cadence
+#=speed.legend.title:Speed
+#=elevation.legend.title:Altitude
 
 #=heartrate.series.name:Heartrate
 #=cadence.series.name:Cadence
@@ -55,12 +53,19 @@ Where should the axis be
 #=lat.series.name:Latitude
 #=lon.series.name:Longitude
 
+################ Where should the axis be ? left or right-side?
+#=heartrate.yaxis.left:true
+#=cadence.yaxis.left:true
+#=elevation.yaxis.left:false
+#=speed.yaxis.left:true
 
+################ What labels should the axis have?
 #=heartrate.axis.title:Heartrate (bpm)
 #=cadence.axis.title:Cadence (rpm)
 #=elevation.axis.title:Altitude (m)
 #=speed.axis.title:Speed (km/h)
 
+################ How should the ticks of the axis should be labeled?
 #=heartrate.axis.format:return value.toFixed(axis.tickDecimals) + "bpm  ";
 #=cadence.axis.format:return value.toFixed(axis.tickDecimals) + "rpm";
 #=elevation.axis.format:return value.toFixed(axis.tickDecimals) + "m";
@@ -148,20 +153,24 @@ Where should the axis be
     <table>
       <thead><tr><th>Value</th><th>min</th><th>avg</th><th>max</th><th>unit</th></tr></thead>
       <tbody>
-        <tr data-condition="{gpx.contain.cadence}" class="gpxcadence" ><th>{cadence.title}</th><td>{gpx.calc.cadence.min}</td><td>{gpx.calc.cadence.avg}</td><td>{gpx.calc.cadence.max}</td><td>{cadence.unit}</td></tr>
-        <tr data-condition="{gpx.contain.heartrate}" class="gpxheartrate" ><th>{heartrate.title}</th><td>{gpx.calc.heartrate.min}</td><td>{gpx.calc.heartrate.avg}</td><td>{gpx.calc.heartrate.max}</td><td>{heartrate.unit}</td></tr>
-        <tr data-condition="{gpx.contain.elevation}" class="gpxelevation" ><th>{elevation.title}</th><td>{gpx.calc.elevation.min}</td><td>{gpx.calc.elevation.avg}</td><td>{gpx.calc.elevation.max}</td><td>{elevation:unit}</td></tr>
-        <tr data-condition="{gpx.contain.elevation}"><th>{elevation.title}</th><td>{elevation:raise}</td>{elevation:fall}<td><td>&nbsp;</td><td>{elevation:unit}</td></tr>
-        <tr data-condition="{gpx.contain.time}"><th>{time.title}</th><td>{time:start}</td>{time:end}<td><td>&nbsp;</td><td>&nbsp;</td></tr>
-        <tr data-condition="{gpx.contain.distance}"><th>{distance.title}</th><td>{distance:total}</td>{distance:unit}<td><td>&nbsp;</td><td>&nbsp;</td></tr>
+        <tr data-condition="{gpx.contain.cadence}" class="gpxcadence" ><th>{cadence.legend.title}</th><td>{gpx.calc.cadence.min}</td><td>{gpx.calc.cadence.avg}</td><td>{gpx.calc.cadence.max}</td><td>{cadence.unit}</td></tr>
+        <tr data-condition="{gpx.contain.heartrate}" class="gpxheartrate" ><th>{heartrate.legend.title}</th><td>{gpx.calc.heartrate.min}</td><td>{gpx.calc.heartrate.avg}</td><td>{gpx.calc.heartrate.max}</td><td>{heartrate.unit}</td></tr>
+        <tr data-condition="{gpx.contain.elevation}" class="gpxelevation" ><th>{elevation.legend.title}</th><td>{gpx.calc.elevation.min}</td><td>{gpx.calc.elevation.avg}</td><td>{gpx.calc.elevation.max}</td><td>{elevation.unit}</td></tr>
+        <tr data-condition="{gpx.contain.elevation}" class="gpxelevation"><th>&nbsp;</th><td colspan="2">Rise: {gpx.stat.elevation.rise}{elevation.unit}</td><td colspan="2">Fall: {gpx.stat.elevation.fall}{elevation.unit}</td></tr>
+        <tr data-condition="{gpx.contain.time}"><th>{time.legend.title}</th><td>{gpx.calc.time.min}</td><td>&nbsp;</td><td>{gpx.calc.time.max}<td></tr>
+        <tr data-condition="{gpx.contain.distance}"><th>{distance.legend.title}</th><td>&nbsp;</td><td>&nbsp;</td><td>{gpx.calc.distance.max}</td><td>{distance.unit}</td></tr>
       </tbody>
     </table>
   </div>
-  <div id="{id}tooltip" class="gpx2charttooltip">
-  </div>
+
+  <div id="{id}tooltip" class="gpx2charttooltip"> </div>
+
   <div id="{id}debug" class="gpx2chartdebug" > </div>
 
-	{data.js.dataarray}
+  <script type="text/javascript">
+    gpx2chart['data'][{instance}]=new Array();
+{data.js.dataarray}
+  </script>
 
   {data.js.options}
 
