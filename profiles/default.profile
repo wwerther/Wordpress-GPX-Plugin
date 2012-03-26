@@ -84,12 +84,16 @@ Where should the axis be
 
     #{id} h1 {
       font-size: 32px;
+      margin:0;
     }
     #{id} h2 {
-      font-size: small;
+      font-size: large;
+      margin: 0;
     }
     #{id} h3 {
-      font-size: smaller;
+      font-size: xx-small;
+      text-align: right;
+      margin: 0;
     }
 
     #{id} table {
