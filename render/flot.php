@@ -49,7 +49,7 @@ class render_flot {
     public function renderoptions ($varname,$xaxes,$yaxes) {
         return <<<EOT
 <script type="text/javascript">
-            var $varname={
+            $varname={
                 grid: { 
                     hoverable: true,
                     mouseActiveIgnoreY: true,
@@ -58,8 +58,8 @@ class render_flot {
                 xaxes: [ $xaxes ],
                 yaxes: [ $yaxes ],
                 legend: { show: false, position: 'sw' },
-               crosshair: { mode: 'x' },
-               selection: { mode: 'x' }
+                crosshair: { mode: 'x' },
+                selection: { mode: 'x' }
             };
 </script>
 EOT;
@@ -68,7 +68,7 @@ EOT;
     public function renderseries ($varname,$series) {
         return <<<EOT
 <script type="text/javascript">
-            var $varname=[
+           $varname=[
             $series
             ];
 </script>
@@ -85,7 +85,7 @@ EOT;
 EOT;
     }
 
-    public function renderaddon ($container) {
+    public function renderaddon ($container,$instance) {
 
 return <<<EOT
 <script type="text/javascript">
@@ -94,13 +94,13 @@ return <<<EOT
             console.debug("Now binding hover function");
         }
     }
-    var flot$container=jQuery("#${container}chart");
+    gpx2chart['handle'][$instance]=jQuery("#${container}chart");
 
     function format_dataset (color,seriesname,seriesx,seriesy) {
         return "<div class='gpx2chartrow'><div class='gpx2chartlabel' style='color:"+color+";'>"+seriesname+"</div><div class='gpx2chartvalue'>"+seriesy+"</div></div>";
     }
 
-    flot$container.bind("plothover", function (evt, position, item, placeholder, orgevent){
+    gpx2chart['handle'][$instance].bind("plothover", function (evt, position, item, placeholder, orgevent){
         plot=placeholder.data('plot')
         series = plot.getData();
         text=""
@@ -127,7 +127,7 @@ return <<<EOT
 //        gpx2chartdebug(,"#${container}debug");
       })
 
-    flot$container.bind("plotselected", function (event, ranges) {
+    gpx2chart['handle'][$instance].bind("plotselected", function (event, ranges) {
         // $("#selection").text(ranges.xaxis.from.toFixed(1) + " to " + ranges.xaxis.to.toFixed(1));
         // var zoom = $("#zoom").attr("checked");
         //gpx2chartdebug("Ranges: ",ranges);
