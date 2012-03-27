@@ -13,7 +13,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=type:running
 #=maxelem:0
 #=data.embed:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall lat lon
-#=data.series:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall lat lon
+#=data.series:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall
 #=data.yaxis.show:cadence heartrate elevation speed
 #=graph.meta.display:
 
