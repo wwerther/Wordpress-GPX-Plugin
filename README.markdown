@@ -1,11 +1,11 @@
 # Gpx2Chart #
 
 Contributors: wwerther
-Donate link: http://wwerther.de/
+Donate link: http://wwerther.de/static/gpx2chart
 Tags: gpx, tracks, charts
-Requires at least: 3.2
+Requires at least: 3.1.2
 Tested up to: 3.2.1
-Stable tag: 0.2.2
+Stable tag: 0.3.0
 
 A plugin that generates nice charts from GPX-files. It put's all information about heartrate, cadence, elevation and speed into one chart. 
 

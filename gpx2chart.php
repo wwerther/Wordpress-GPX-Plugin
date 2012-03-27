@@ -4,7 +4,7 @@
 Plugin Name: gpx2chart
 Plugin URI: http://wwerther.de/static/gpx2chart
 Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files. Samples can be found on <a href="http://wwerther.de/static/gpx2chart">GPX2Chart plugin page</a>. Default-configuration can be done on the [<a href="options-general.php?page=gpx2chart.php">settings-page</a>].
-Version: 0.2.2
+Version: 0.3.0
 Author: Walter Werther
 Author URI: http://wwerther.de/
 Update Server: http://downloads.wordpress.org/plugin
@@ -30,6 +30,7 @@ if (! defined('GPX2CHART_PLUGIN_DIR')) define ("GPX2CHART_PLUGIN_DIR", WP_PLUGIN
 if (! defined('GPX2CHART_PLUGIN_ICONS_URL')) define ("GPX2CHART_PLUGIN_ICONS_URL", GPX2CHART_PLUGIN_URL."/icons/");
 if (! defined('GPX2CHART_PROFILES')) define ("GPX2CHART_PROFILES",GPX2CHART_PLUGIN_DIR."profiles".DIRECTORY_SEPARATOR);
 if (! defined('GPX2CHART_CONTAINERPREFIX')) define ("GPX2CHART_CONTAINERPREFIX",'GPX2CHART');
+if (! defined('GPX2CHART_OPTIONS')) define ("GPX2CHART_OPTIONS",'gpx2chart_option');
 
 class GPX2CHART {
 
@@ -134,20 +135,22 @@ class GPX2CHART {
 		add_options_page(__('GPX2Chart Settings', 'GPX2Chart-plugin'), __('GPX2Chart', 'GPX2Chart-plugin'), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
 	}
 
-	public static function options_page_gpx() {
+    public static function options_page_gpx() {
         if(isset($_POST['Options'])){
-		} else{
-#			add_option('osm_custom_field', 0);
-#			add_option('osm_zoom_level', 0);
-		}
-    // name of the custom field to store Long and Lat
-    // for the geodata of the post
-#		$osm_custom_field  = get_option('osm_custom_field');                                                  
-
-    // zoomlevel for the link the OSM page
-#    $osm_zoom_level    = get_option('osm_zoom_level');
-    include('gpx2chart_options.php');	
-
+            $newvalue = $_POST['gpx2chartoptions'];
+            if ( stripslashes(get_option( GPX2CHART_OPTIONS )) != $newvalue ) {
+                update_option(GPX2CHART_OPTIONS, $newvalue );
+            } else {
+                $deprecated = ' ';
+                $autoload = 'no';
+                add_option( $option_name, $newvalue, $deprecated, $autoload );
+            }
+        }
+        if(isset($_POST['Reset'])){
+                delete_option(GPX2CHART_OPTIONS);
+        }
+        $gpx2chart_config=stripslashes(get_option(GPX2CHART_OPTIONS,file_get_contents(GPX2CHART_PROFILES.'default.conf')));
+        include('gpx2chart_options.php');	
     }
 
 /*
@@ -171,17 +174,22 @@ class GPX2CHART {
         $this->debug=in_array('debug',$atts) ? true : $this->debug;
 
         /* Determine the profile that should be used to display this chart */
-        $this->profile=in_array('profile',$atts) ? basename($atts['profile']).'.profile' : 'default.profile';
+        preg_replace_callback($pattern,array(&$this,'readconfiguration'),stripslashes(get_option( GPX2CHART_OPTIONS )));
+        $this->configuration['profile']=array_key_exists('profile',$this->configuration) ? $this->configuration['profile'].'.profile' : 'default.profile';
+        $this->configuration['profile']=in_array('profile',$atts) ? basename($atts['profile']).'.profile' : $this->configuration['profile'];
 
         $this->configuration['container.name']=GPX2CHART_CONTAINERPREFIX;
         $this->configuration['icons.url']=GPX2CHART_PLUGIN_ICONS_URL;
 
         /* Load the profile */
-        $profilecontent=file_get_contents(GPX2CHART_PROFILES.DIRECTORY_SEPARATOR.$this->profile);
+        $profilecontent=file_get_contents(GPX2CHART_PROFILES.DIRECTORY_SEPARATOR.$this->configuration['profile']);
 
         /* Read the default settings of this template */
         $pattern='/#=(\S+?):(.+?)\n/';
         $profilecontent=preg_replace_callback($pattern,array(&$this,'readconfiguration'),$profilecontent);
+
+        /* Override with settings from default configuration in web-gui */
+        preg_replace_callback($pattern,array(&$this,'readconfiguration'),stripslashes(get_option( GPX2CHART_OPTIONS )));
 
         /* Override configuration with values defined in attributes */
         foreach ($atts as $key=>$value) {
@@ -197,7 +205,7 @@ class GPX2CHART {
             $key=str_replace('-','.',$key);
             $this->configuration[$key]=$value;
         }
-        $this->configuration['headline']=ucfirst($this->configuration['type']);
+        $this->configuration['headline']=array_key_exists('headline',$this->configuration) ? $this->configuration['headline'] : ucfirst($this->configuration['type']);
 
         $this->configuration['debug']=$this->debug;
         $this->configuration['profile']=$this->profile;
@@ -306,8 +314,8 @@ class GPX2CHART {
         $this->configuration['data.yaxis.show']=explode(" ",$this->configuration['data.yaxis.show']);
         $this->configuration['data.yaxis.show.available']=array_diff($this->configuration['data.yaxis.show'],$gpx->getunavailable());
         
-        $this->configuration['title'] = $gpx->meta->name;
-        $this->configuration['subtitle']=strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
+        $this->configuration['title'] = array_key_exists('title',$this->configuration) ? $this->configuration['title'] : $gpx->meta->name;
+        $this->configuration['subtitle']=array_key_exists('subtitle',$this->configuration) ? $this->configuration['subtitle'] : strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
 
         $gpx->setmaxelem($this->configuration['maxelem']);
 
