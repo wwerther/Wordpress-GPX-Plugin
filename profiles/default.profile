@@ -18,7 +18,8 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=graph.meta.display:
 
 ################ Dimensions
-#=chart.width:576px
+#=container.width:760px
+#=chart.width:700px
 #=chart.height:300px
 
 ################ Define the default-colors
@@ -84,7 +85,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
     #{id} {
       font-family: Verdana, Helvetica, Arial, sans-serif;
       font-size: normal;
-      width: 90%;
+      width: {container.width};
     }
 
     #{id} h1 {
