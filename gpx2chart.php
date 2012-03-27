@@ -14,7 +14,7 @@ Max WP Version: 3.3.1
 
 #
 
-define ('GPX2CHART_PLUGIN_VER','0.2.2');
+define ('GPX2CHART_PLUGIN_VER','0.3.0');
 
 // Include helper
 require_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'ww_gpx_helper.php');

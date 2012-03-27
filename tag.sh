@@ -11,7 +11,7 @@ fi
 
 sed -i -e "s/^\\(Stable tag:\\).\+/\1 $TAG/" README.markdown
 sed -i -e "s/^\\(Version:\\).\+/\1 $TAG/" gpx2chart.php
-sed -i -e "s/^\\(GPX2CHART_PLUGIN_VER',\\)'.\+'/\1'$TAG'/" gpx2chart.php
+sed -i -e "s/\\('GPX2CHART_PLUGIN_VER',\\)'.\+'/\1'$TAG'/" gpx2chart.php
 
 git commit -a -m "Prepare to tag $TAG"
 git push
