@@ -9,7 +9,7 @@
 <div class="wrap">
 <table border="0">
  <tr>
-  <td><p><img src="<?php echo GPX2CHART_PLUGIN_URL ?>/WP_GPX2Chart_Plugin_Logo.png" alt="Gpx2Chart Logo"></p></td>
+  <td><p><img src="<?php echo GPX2CHART_PLUGIN_URL ?>/icons/WP_GPX2Chart_Plugin_Logo.png" alt="Gpx2Chart Logo"></p></td>
   <td style="width:100%"><h2>GPX2Chart Plugin <?php echo GPX2CHART_PLUGIN_VER ?> </h2></td>
   <td>
 <!--Donate:<br\>
