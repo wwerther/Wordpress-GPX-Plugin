@@ -18,6 +18,7 @@ Version: 0.2
 .gpx2chartmeta {
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 	font-size: x-small;
+	line-height: 15px;
 }
 
 .gpx2chartmeta tr th {
@@ -56,6 +57,10 @@ Version: 0.2
 
 .gpx2chartrow {
 	clear: both;
+	font-size: xx-small;
+	line-height: 14px;
+	margin: 0;
+	padding: 0;
 }
 
 .gpx2chartdebug {

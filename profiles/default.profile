@@ -18,9 +18,12 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=graph.meta.display:
 
 ################ Dimensions
-#=container.width:760px
-#=chart.width:700px
+#=container.width:90%
+#=chart.width:576px
 #=chart.height:300px
+
+#=distance.scale:1000
+#=distance.unit:km
 
 ################ Define the default-colors
 #=heartrate.color:#AA4643
@@ -28,6 +31,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=elevation.color:#89A54E
 #=speed.color:#CACA00
 #=time.color:#000
+#=distance.color:#000
 
 ################ What unit's should be used?
 #=heartrate.unit:bpm
@@ -40,6 +44,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=cadence.legend.title:Cadence
 #=speed.legend.title:Speed
 #=elevation.legend.title:Altitude
+#=distance.legend.title:Distance
 
 #=heartrate.series.name:Heartrate
 #=cadence.series.name:Cadence
@@ -117,11 +122,17 @@ Define Defaults for rendering the charts. These values can be overwritten by val
     #{id} .gpxcadence th {
       color: {cadence.color};
     }
+    #{id} .gpxspeed th {
+      color: {speed.color};
+    }
     #{id} .gpxheartrate th {
       color: {heartrate.color};
     }
     #{id} .gpxelevation th {
       color: {elevation.color};
+    }
+    #{id} .gpxdistance th {
+      color: {distance.color};
     }
 
     #{id}chart {
@@ -158,8 +169,9 @@ Define Defaults for rendering the charts. These values can be overwritten by val
         <tr data-condition="{gpx.contain.heartrate}" class="gpxheartrate" ><th>{heartrate.legend.title}</th><td>{gpx.calc.heartrate.min}</td><td>{gpx.calc.heartrate.avg}</td><td>{gpx.calc.heartrate.max}</td><td>{heartrate.unit}</td></tr>
         <tr data-condition="{gpx.contain.elevation}" class="gpxelevation" ><th>{elevation.legend.title}</th><td>{gpx.calc.elevation.min}</td><td>{gpx.calc.elevation.avg}</td><td>{gpx.calc.elevation.max}</td><td>{elevation.unit}</td></tr>
         <tr data-condition="{gpx.contain.elevation}" class="gpxelevation"><th>&nbsp;</th><td colspan="2">Rise: {gpx.stat.elevation.rise}{elevation.unit}</td><td colspan="2">Fall: {gpx.stat.elevation.fall}{elevation.unit}</td></tr>
+        <tr data-condition="{gpx.contain.speed}" class="gpxspeed" ><th>{speed.legend.title}</th><td>{gpx.calc.speed.min}</td><td>{gpx.calc.speed.avg}</td><td>{gpx.calc.speed.max}</td><td>{speed.unit}</td></tr>
+        <tr data-condition="{gpx.contain.distance}" class="gpxdistance"><th>{distance.legend.title}</th><td>&nbsp;</td><td>&nbsp;</td><td>{gpx.stat.distance.max}</td><td>{distance.unit}</td></tr>
         <tr data-condition="{gpx.contain.time}"><th>{time.legend.title}</th><td>{gpx.calc.time.min}</td><td>&nbsp;</td><td>{gpx.calc.time.max}<td></tr>
-        <tr data-condition="{gpx.contain.distance}"><th>{distance.legend.title}</th><td>&nbsp;</td><td>&nbsp;</td><td>{gpx.calc.distance.max}</td><td>{distance.unit}</td></tr>
       </tbody>
     </table>
   </div>
