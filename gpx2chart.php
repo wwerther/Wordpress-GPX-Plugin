@@ -31,6 +31,7 @@ if (! defined('GPX2CHART_PLUGIN_ICONS_URL')) define ("GPX2CHART_PLUGIN_ICONS_URL
 if (! defined('GPX2CHART_PROFILES')) define ("GPX2CHART_PROFILES",GPX2CHART_PLUGIN_DIR."profiles".DIRECTORY_SEPARATOR);
 if (! defined('GPX2CHART_CONTAINERPREFIX')) define ("GPX2CHART_CONTAINERPREFIX",'GPX2CHART');
 if (! defined('GPX2CHART_OPTIONS')) define ("GPX2CHART_OPTIONS",'gpx2chart_option');
+if (! defined('GPX2CHART_TEXTDOMAIN')) define ("GPX2CHART_TEXTDOMAIN",'GPX2CHART-plugin');
 
 class GPX2CHART {
 
@@ -84,7 +85,7 @@ class GPX2CHART {
     }
 
 	public function init() {
-        load_plugin_textdomain('GPX2Chart-plugin', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/');
+        load_plugin_textdomain(GPX2CHART_TEXTDOMAIN, false, dirname( plugin_basename( __FILE__ ) ) . '/languages/');
 
         $minimized='.min';
         if ($this->debug) {
@@ -132,7 +133,7 @@ class GPX2CHART {
 
 	function admin_menu($not_used){
     // place the info in the plugin settings page
-		add_options_page(__('GPX2Chart Settings', 'GPX2Chart-plugin'), __('GPX2Chart', 'GPX2Chart-plugin'), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
+		add_options_page(__('GPX2Chart Settings',GPX2CHART_TEXTDOMAIN), __('GPX2Chart',GPX2CHART_TEXTDOMAIN), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
 	}
 
     public static function options_page_gpx() {
@@ -174,6 +175,7 @@ class GPX2CHART {
         $this->debug=in_array('debug',$atts) ? true : $this->debug;
 
         /* Determine the profile that should be used to display this chart */
+        $pattern='/#=(\S+?):(.+?)\n/';
         preg_replace_callback($pattern,array(&$this,'readconfiguration'),stripslashes(get_option( GPX2CHART_OPTIONS )));
         $this->configuration['profile']=array_key_exists('profile',$this->configuration) ? $this->configuration['profile'].'.profile' : 'default.profile';
         $this->configuration['profile']=in_array('profile',$atts) ? basename($atts['profile']).'.profile' : $this->configuration['profile'];
@@ -444,13 +446,13 @@ class GPX2CHART {
                     if ($function=='calc') {
                         switch ($type) {
                             case 'min':
-                                return $this->gpx->min($series);
+                                return sprintf('%0.2f',$this->gpx->min($series));
                             break;
                             case 'max':
-                                return $this->gpx->max($series);
+                                return sprintf('%0.2f',$this->gpx->max($series));
                             break;
                             case 'avg':
-                                return $this->gpx->avg($series);
+                                return sprintf('%0.2f',$this->gpx->avg($series));
                             break;
                             default:
                                 return "GPX: unknown function $type on $series";
@@ -461,12 +463,19 @@ class GPX2CHART {
                     } elseif ($function=='stat') {
                         if ($series=='elevation') {
                             if ($type=='rise') {
-                                return "GPX: unknown stat RISE on $series";
+                                return sprintf('%0.2f',$this->gpx[-1]['totalrise']);
                             } elseif ($type=='fall') {
-                                return "GPX: unknown stat FALL on $series";
+                                return sprintf('%0.2f',$this->gpx[-1]['totalfall']);
+
                             } else {
                                 return "GPX: unknown stat $type on $series";
                             }
+                        } elseif ($series=='distance') {
+                            if ($type=='max') {
+                                return sprintf('%0.2f',$this->gpx[-1]['totaldistance']/$this->configuration['distance.scale']);
+                            } else {
+                                return "GPX: unknown stat $type on $series";
+                            }                           
                         } else {
                                 return "GPX: unknown stat $type on $series";
                         }
