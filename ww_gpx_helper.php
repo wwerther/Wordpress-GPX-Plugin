@@ -527,6 +527,8 @@ class WW_GPX implements Countable, ArrayAccess{
         if ($series=='heartrate') return $this->meta->heartrate;
         if ($series=='cadence') return $this->meta->cadence;
         if ($series=='elevation') return $this->meta->elevation;
+        if ($series=='speed') return true;
+        if ($series=='distance') return true;
         return '';
     }
 
