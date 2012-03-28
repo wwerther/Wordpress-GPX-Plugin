@@ -16,31 +16,17 @@ if [ ! -e "wpsvn" ]; then
 	mkdir wpsvn/tags
 fi
 
-echo "Copy PHP-Source"
-cp -v *php wpsvn/trunk
+echo "Create new staging"
+./stage.sh
 
-echo "Compile JS-Libs"
-make -C js/helper
-make -C jsflot
+echo "remove all from trunk"
+find wpsvn/trunk/ | grep -v '/\.' | xargs rm
 
-echo "Copy Javascript"
-cp -v -r js wpsvn/trunk
-echo "Copy CSS"
-cp -v -r css wpsvn/trunk
-echo "Copy Render"
-cp -v -r render wpsvn/trunk
-echo "Copy Test-Files"
-cp -v -r test wpsvn/trunk
-echo "Copy Screenshots"
-cp -v screenshots/* wpsvn/trunk
-echo "Updating Readme-File"
-./readme2wordpress.sh > wpsvn/trunk/readme.txt
-echo "Cleaning env"
-find wpsvn/ -name "*~" | xargs rm
-find wpsvn/ -name ".git*" | xargs rm -r
-find wpsvn/ -name "examples" | xargs rm -r
-cd wpsvn
-echo "Creating Tag $TAG"
-svn cp trunk tags/$TAG
-echo "Commiting and uploading SVN"
-svn ci -m "tagging with version $TAG"
+echo "Copy staging to trunk"
+cp -v -r stage/* wpsvn/trunk
+
+#cd wpsvn
+#echo "Creating Tag $TAG"
+#svn cp trunk tags/$TAG
+#echo "Commiting and uploading SVN"
+#svn ci -m "tagging with version $TAG"
