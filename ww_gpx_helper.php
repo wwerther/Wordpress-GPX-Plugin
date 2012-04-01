@@ -247,7 +247,7 @@ class WW_GPX implements Countable, ArrayAccess{
                 break;
             }
             case 'NAME': {
-                if ($this->state(-1) != 'TRK') {
+                if (! (($this->state(-1) == 'TRK') or ($this->state(-1) == 'METADATA'))) {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
                 array_push($this->state,$tag);
@@ -283,11 +283,12 @@ class WW_GPX implements Countable, ArrayAccess{
             case 'TIME': {
                 $state=$this->state(-1);
                 if (! (($state == 'TRKPT') || ($state == 'METADATA'))) {
-                    throw new Exception("INVALID $tag at current position. Please check GPX-File");
+#                    throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
                 array_push($this->state,$tag);
                 break;
             }
+            case 'GPXDATA:HR': 
             case 'GPXTPX:HR': {
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
@@ -350,7 +351,8 @@ class WW_GPX implements Countable, ArrayAccess{
                 }
                 break;
             }
-            case 'GPXTPX:HR': {
+            case 'GPXTPX:HR': 
+            case 'GPXDATA:HR': {
                 if ($this->state(-2) == 'TRKPT') {
                     $this->currenttp['heartrate']=$cdata;
                     $this->meta->heartrate=true;
@@ -378,6 +380,7 @@ class WW_GPX implements Countable, ArrayAccess{
             case 'ELE': 
             case 'TIME': 
             case 'GPXTPX:HR': 
+            case 'GPXDATA:HR': 
             case 'GPXTPX:CAD':  {
                 if (array_pop($this->state)!=$tag) {
                     throw new Exception ("ungültige Schachtelung");

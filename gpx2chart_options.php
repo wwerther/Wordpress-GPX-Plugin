@@ -4,7 +4,7 @@
   Option page for GPX2Chart wordpress plugin
                inspired by MiKa (http://www.HanBlog.net)
   blog:   http://wwerther.de
-  plugin: http://www.wwerther.de/statc/gpx2chart
+  plugin: http://www.wwerther.de/static/gpx2chart
 */
 ?>
 <style type="text/css">
