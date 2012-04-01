@@ -1,9 +1,9 @@
 <?php
-// vim: set ts=4 et nu ai syntax=php indentexpr= :vim
+// vim: set ts=4 et nu ai syntax=php indentexpr= ff=unix sw=2 :vim
 /*
 Plugin Name: gpx2chart
 Plugin URI: http://wwerther.de/static/gpx2chart
-Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files. Samples can be found on <a href="http://wwerther.de/static/gpx2chart">GPX2Chart plugin page</a>. Default-configuration can be done on the [<a href="options-general.php?page=gpx2chart.php">settings-page</a>].
+Description: gpx2chart - a WP-Plugin for extracting some nice graphs from GPX-Files. Samples can be found on <a href="http://wwerther.de/static/gpx2chart">GPX2Chart plugin page</a>. 
 Version: 0.3.1
 Author: Walter Werther
 Author URI: http://wwerther.de/
@@ -134,7 +134,7 @@ class GPX2CHART {
 
 	function admin_menu($not_used){
     // place the info in the plugin settings page
-		add_options_page(__('GPX2Chart Settings',GPX2CHART_TEXTDOMAIN), __('GPX2Chart',GPX2CHART_TEXTDOMAIN), 5, basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
+		add_options_page(__('GPX2Chart Settings',GPX2CHART_TEXTDOMAIN), __('GPX2Chart',GPX2CHART_TEXTDOMAIN), 'manage_options', basename(__FILE__), array('GPX2CHART', 'options_page_gpx'));
 	}
 
     public static function options_page_gpx() {
@@ -531,5 +531,14 @@ if (! function_exists('add_shortcode')) {
 
 $pGPX2Chart=new GPX2CHART();
 #GPX2CHART::init();
+
+function wp_gpx2chart_plugin_actions( $links, $file ) {
+ 	if( $file == 'gpx2chart/gpx2chart.php' && function_exists( "admin_url" ) ) {
+		$settings_link = '<a href="' . admin_url( 'options-general.php?page=gpx2chart' ) . '">' . __('Settings') . '</a>';
+		array_unshift( $links, $settings_link ); // before other links
+	}
+	return $links;
+}
+add_filter( 'plugin_action_links', 'wp_gpx2chart_plugin_actions', 10, 2 )
 
 ?>
