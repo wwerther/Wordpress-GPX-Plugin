@@ -1,5 +1,5 @@
 <?php
-// vim: set ts=4 et nu ai syntax=php indentexpr= enc=utf-8 :vim
+// vim: set ts=4 et nu ai syntax=php indentexpr= :vim
 
 # http://www.schoenhoff.org/php-programmierung/streckenberechnung-zwischen-zwei-gps-geokordinaten-mit-php/
 # http://www.php-resource.de/forum/xml/86227-gpx-file-lesen-und-daten-mit-php-weiterverarbeiten.html
@@ -592,12 +592,13 @@ class ww_XMLelement extends SimpleXMLElement {
         
         if (class_exists($class_name)) {
             if (method_exists($class_name,$name)) {
-                # echo "magic __call called for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
+                echo "magic __call called for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
                 $instance = $this->asInstanceOf($class_name);
                 return call_user_func_array(array($instance, $name), $arguments);
             }
             throw new Exception('Method '.$name.' does not exist in class '.$class_name);
         }
+        #echo "magic __call failed for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
         throw new Exception('Class ' . $class_name . ' does not exist');
     }
 
@@ -605,23 +606,18 @@ class ww_XMLelement extends SimpleXMLElement {
 
 class GPX_gpx extends ww_XMLelement {
 
-    function get_trk_count() {
-        return count($this->trk);
+    public function getpoints() {
+        $datapoints=array();
+        $min=0;
+        $max=count($this->trk);
+        print "trk $min-$max\n";
+        for ($tc=$min;$tc<$max;$tc++) {
+            print "runpoint $tc";
+            print get_class($this->trk[$tc]);
+            #]->getpoints();
+        }
+        return $datapoints;
     }
-
-}
-
-class GPX_trk extends ww_XMLelement {
-
-    public function set_name($name) {
-        $this->name=$name;
-    }
-
-
-}
-
-class GPX_trkseg extends ww_XMLelement {
-
 }
 
 class GPX_trkpt extends ww_XMLelement {
@@ -662,7 +658,7 @@ class GPX_trkpt extends ww_XMLelement {
             $child->TrackPointExtension->hr=$newval;
         }
 
-        return $this['lat']." ".$child->TrackPointExtension->hr;
+        return $child->TrackPointExtension->hr;
     }
 
     public function cad($newval=null) {
@@ -794,7 +790,6 @@ class GPX_trkpt extends ww_XMLelement {
         return $this['lon'];
     }
 
-
 }
 
 class Test extends ww_XMLelement {
@@ -803,7 +798,7 @@ class Test extends ww_XMLelement {
     }
 }
 
-class GPX {
+class GPX2 {
 
     private $filename=null;
     private $xml=null;
@@ -811,8 +806,6 @@ class GPX {
     public function __construct ($filename) {
         $this->filename=$filename;
         $this->xml = simplexml_load_file($filename,'ww_XMLelement',LIBXML_NOBLANKS);
-        $this->xml=$this->xml->addNamespace('ww','http://wwerther.de/xmlschemas/TrackPointExtension/v1');
-        # $this->xml=$this->xml->addNamespace('ww','http://wwerther.de/xmlschemas/TrackPointExtension/v1');
     }
 
 
@@ -843,7 +836,7 @@ class GPX {
         
         $text.='Statistic of '.$this->filename."\n";
 
-        $text.=var_dump($this->xml->getdocnamespaces(true));
+        $text.=var_export($this->xml->getdocnamespaces(true),true);
 
 #      $text.='tc '.$this->xml->get_trk_count()."\n";
 
@@ -851,12 +844,14 @@ class GPX {
 
         #$this->xml->trk[0]->set_name('Hallo Walter');
 
-        $text.='hr '.$this->xml->trk[0]->trkseg[0]->trkpt[0]->speed(10)."\n";
+#        $text.='hr '.$this->xml->trk[0]->trkseg[0]->trkpt[0]->hr()."\n";
 
-        foreach ($this->xml->trks as $trk) {
+        $text.='trackpoints: '.$this->xml->getpoints();
+
+        #foreach ($this->xml->trk as $trk) {
             #$trk=$trk->asInstanceOf('GPX_trk');
-            $text.='trks '.var_export($trk)."\n";
-        }
+        #    $text.='trks '.var_export($trk)."\n";
+        #}
 
         return $text;
     }
@@ -867,6 +862,148 @@ class GPX {
         return $dom->saveXML();
     
         #return $this->xml->asXML();
+    }
+
+    public function getall ($needle) {
+        $arr=array();
+        foreach ($this->xml->trk[0]->trkseg[1] as $point) {
+            array_push($arr,$point->lat());
+        } 
+        return $arr;
+    }
+}
+
+
+class xmlelement implements RecursiveIterator , Countable, ArrayAccess {
+
+    private $attributes=null;
+    private $children=null;
+    private $namespaces=null;
+
+    private $name='';
+    
+    public function __construct ($data) {
+        $this->attributes=array();
+    }
+
+    public function load_string($data) {
+        $reader = new XMLReader();
+        $reader->XML($data);
+
+
+        $tree = null;
+        while($xml->read()) {
+            switch ($xml->nodeType) {
+                case XMLReader::END_ELEMENT: return $tree;
+                case XMLReader::ELEMENT:
+                    $node = array('tag' => $xml->name, 'value' => $xml->isEmptyElement ? '' : xml2assoc($xml));
+                    if($xml->hasAttributes)
+                        while($xml->moveToNextAttribute())
+                            $node['attributes'][$xml->name] = $xml->value;
+                            $tree[] = $node;
+                break;
+                case XMLReader::TEXT:
+                case XMLReader::CDATA:
+                    $tree .= $xml->value;
+            }
+            return $tree; 
+        }
+
+    }
+
+    public function getChildren() {
+    }
+            
+    public function hasChildren () {
+    }
+     
+    public function getName() {
+        return $this->name; 
+    }
+
+    public function current() {
+    }
+
+    public function key () {
+    }
+
+    public function next() {
+    }
+
+    public function rewind() {
+   
+    }
+    
+    public function valid() {
+
+    }
+    
+    public function count() {
+
+    }
+
+    public function curnamespace($current) {
+        $this->currentnamespace=$current;
+    }
+
+    public function offsetExists ( $offset ) {
+        return array_key_exists($this->attributes[$this->currentnamespace],$offset);
+    }
+
+    public function offsetGet ( $offset ) {
+        return $this->attributes[$this->currentnamespace][$offset];
+    }
+
+    public function offsetSet ( $offset , $value ) {
+        $this->attributes[$this->currentnamespace][$offset]=$value;    
+    }
+
+    public function offsetUnset ( $offset ) {
+        unset($this->attributes[$this->currentnamespace][$offset]);        
+    }
+    
+    public function asXML() {
+        $writer=new XMLWriter();
+        # $writer->setIndent(true);
+        $writer->openMemory();
+
+        $writer->startDocument('1.0','UTF-8');
+        # $writer->startdtd('html','-//WAPFORUM//DTD XHTML Mobile 1.0//EN', 'http://www.wapforum.org/DTD/xhtml-mobile10.dtd');
+        # $writer->enddtd();
+        
+        $this->__xml($writer);
+
+        $writer->endDocument();
+        return $writer->outputMemory(TRUE);
+    }
+
+    public function __xml($writer) {
+        # print "__xml\n";
+        $writer->startelement($this->getName());
+
+        # $writer->writeattribute( 'xmlns', 'http://www.wapforum.org/DTD/xhtml-mobile10.dtd');
+        $writer->writeattribute( 'xm:lang', 'en');
+
+        foreach ($this->attributes as $nspaceuri=>$attributes) {
+            foreach ($attributes as $key=>$value) {
+                $writer->startAttributeNS ( 'prefix' , $value , $nspaceuri );
+                $writer->text($value);
+                $writer->endAttribute();
+            }
+        }
+        
+ $writer->startAttributeNS ( '' , 'nae', 'http://wwerther.de/uri' );
+
+        $writer->endAttribute();
+
+        $writer->startElementNS ( 'prefix' , $this->getName(), 'http://wwerther.de/uri' );
+        # $writer->startelement($this->getName());
+
+        # xmlwriter_write_attribute( $writer, 'xmlns', 'http://www.wapforum.org/DTD/xhtml-mobile10.dtd');
+        # xmlwriter_write_attribute( $writer, 'xm:lang', 'en');
+
+        $writer->endelement();
+        $writer->endelement();
     }
 
 }
@@ -891,19 +1028,20 @@ echo (string)$test, "\n";
 $filename='./test/heartrate_pretty.gpx';
 #   $filename='./test/long.gpx';
 
-#$filename='./test/heartrate.gpx';
+$filename='./test/heartrate.gpx';
 
 
 if (file_exists($filename)) {
 //    $xml = simplexml_load_file($filename);
 //	$doc = new DOMDocument();
 //	$doc->load($filename,LIBXML_NOBLANKS);
-    $gpx=new GPX($filename);
+    #$gpx=new GPX($filename);
 } else {
    exit('Konnte test.xml nicht öffnen.');
 }
 
-
+$gpx=new xmlelement('');
+print nl2br(htmlspecialchars($gpx->asXML()));
 //$doc->formatOutput=true;
 
 //echo htmlspecialchars($doc->saveXML());
@@ -921,19 +1059,21 @@ foreach ($xml->trk->trkseg->trkpt as $data) {
 */
 
 # var_dump($gpx);
-
-print nl2br($gpx->statistics());
+#        $this->xml=$this->xml->addNamespace('ww','http://wwerther.de/xmlschemas/TrackPointExtension/v1');
+print '<pre>';
+#print $gpx->statistics();
 
 #$xml->addchild('ww:Walter','test','http://wwerther.de/extensions/');
 
 #$namespaces = $xml->getNamespaces(TRUE);
 #var_dump($namespaces);
 
-
-print nl2br(htmlspecialchars($gpx->asXML()));
+#print nl2br(htmlspecialchars($gpx->asXML()));
 
 #var_dump($xml);
 
+#print nl2br(var_export($gpx->getall('hr')));
+print '</pre>';
 
 
 ?>
