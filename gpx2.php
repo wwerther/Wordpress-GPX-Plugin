@@ -558,7 +558,7 @@ define('XMLREMOVE','XMLREMOVE_REMOVE_THIS_ITEM');
 define('XMLelementprefix','GPX_');
 
 class ww_XMLelement extends SimpleXMLElement {
-    
+
     // taken from http://www.php.net/manual/en/book.simplexml.php
     /*
      * Returns this object as an instance of the given class.
@@ -577,6 +577,7 @@ class ww_XMLelement extends SimpleXMLElement {
         }
 
         $classname=get_class($this);
+        # Yes this is right... one namespace would be removed otherwise
         $this->addattribute('xmlns:xmlns:'.$prefix,$namespace);
         if (! is_null($xsd) ) {
             $schemaLocation=$this->attributes('http://www.w3.org/2001/XMLSchema-instance')->schemaLocation; 
@@ -591,14 +592,16 @@ class ww_XMLelement extends SimpleXMLElement {
         $class_name = XMLelementprefix.$this->getName();
         
         if (class_exists($class_name)) {
-            if (method_exists($class_name,$name)) {
+            if (method_exists($class_name,'_'.$name)) {
                 echo "magic __call called for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
+                print 'Class: '.get_class($this);
                 $instance = $this->asInstanceOf($class_name);
-                return call_user_func_array(array($instance, $name), $arguments);
+                print 'Class: '.get_class($instance);
+                return call_user_func_array(array($instance, '_'.$name), $arguments);
             }
             throw new Exception('Method '.$name.' does not exist in class '.$class_name);
         }
-        #echo "magic __call failed for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
+        echo "magic __call failed for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
         throw new Exception('Class ' . $class_name . ' does not exist');
     }
 
@@ -606,7 +609,7 @@ class ww_XMLelement extends SimpleXMLElement {
 
 class GPX_gpx extends ww_XMLelement {
 
-    public function getpoints() {
+    public function _getpoints() {
         $datapoints=array();
         $min=0;
         $max=count($this->trk);
@@ -614,10 +617,19 @@ class GPX_gpx extends ww_XMLelement {
         for ($tc=$min;$tc<$max;$tc++) {
             print "runpoint $tc";
             print get_class($this->trk[$tc]);
-            #]->getpoints();
+            print "\n";
+            $this->trk[$tc]->getpoints();
         }
         return $datapoints;
     }
+}
+
+class GPX_trk extends ww_XMLelement {
+
+    public function _getpoints() {
+        print "Blub: ".count($this->trkseg)." ".get_class()."\n";
+    }
+
 }
 
 class GPX_trkpt extends ww_XMLelement {
@@ -887,27 +899,6 @@ class xmlelement implements RecursiveIterator , Countable, ArrayAccess {
     }
 
     public function load_string($data) {
-        $reader = new XMLReader();
-        $reader->XML($data);
-
-
-        $tree = null;
-        while($xml->read()) {
-            switch ($xml->nodeType) {
-                case XMLReader::END_ELEMENT: return $tree;
-                case XMLReader::ELEMENT:
-                    $node = array('tag' => $xml->name, 'value' => $xml->isEmptyElement ? '' : xml2assoc($xml));
-                    if($xml->hasAttributes)
-                        while($xml->moveToNextAttribute())
-                            $node['attributes'][$xml->name] = $xml->value;
-                            $tree[] = $node;
-                break;
-                case XMLReader::TEXT:
-                case XMLReader::CDATA:
-                    $tree .= $xml->value;
-            }
-            return $tree; 
-        }
 
     }
 
@@ -1035,13 +1026,90 @@ if (file_exists($filename)) {
 //    $xml = simplexml_load_file($filename);
 //	$doc = new DOMDocument();
 //	$doc->load($filename,LIBXML_NOBLANKS);
-    #$gpx=new GPX($filename);
+   # $gpx=new GPX($filename);
 } else {
    exit('Konnte test.xml nicht öffnen.');
 }
 
-$gpx=new xmlelement('');
-print nl2br(htmlspecialchars($gpx->asXML()));
+
+
+
+
+class xmlel {
+
+    public function __construct () {
+    }
+
+
+
+    public function load($filename) {
+        $reader = new XMLReader();
+
+        $reader->open($filename);
+        
+        print nl2br("Parsing file $filename\n");
+        $this->__parse($reader);
+        print nl2br("Closing file\n");
+        $reader->close();
+
+        print_r($this);
+    }
+
+
+    public function __parse($reader) {
+        while($reader->read()) {
+            switch ($reader->nodeType) {
+                case XMLReader::END_ELEMENT: return;#break;#return $tree;
+                case XMLReader::ELEMENT:
+                    print nl2br("Found Element :".$reader->name."\n");
+                    $this->name=$reader->name;
+                    #$node = array('tag' => $reader->name, 'value' => $xml->isEmptyElement ? '' : xml2assoc($xml));
+                    #if($xml->hasAttributes)
+                    #    while($xml->moveToNextAttribute())
+                    #        $node['attributes'][$xml->name] = $xml->value;
+                    #        $tree[] = $node;
+                break;
+                case XMLReader::TEXT:
+                case XMLReader::CDATA:
+                    print nl2br("TEXT/CDATA: $reader->depth  $reader->name $reader->value");
+                    #$tree .= $xml->value;
+                break;
+                default:
+                    print nl2br($reader->name." ".$reader->nodeType."\n");
+                break;
+            }
+            #return $tree; 
+        }
+    }
+
+}
+
+
+$x=new xmlel();
+
+$x->load($filename);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$gpx=new GPX2($filename);
+
+
+#print nl2br(htmlspecialchars($gpx->asXML()));
 //$doc->formatOutput=true;
 
 //echo htmlspecialchars($doc->saveXML());
@@ -1061,7 +1129,7 @@ foreach ($xml->trk->trkseg->trkpt as $data) {
 # var_dump($gpx);
 #        $this->xml=$this->xml->addNamespace('ww','http://wwerther.de/xmlschemas/TrackPointExtension/v1');
 print '<pre>';
-#print $gpx->statistics();
+print $gpx->statistics();
 
 #$xml->addchild('ww:Walter','test','http://wwerther.de/extensions/');
 
