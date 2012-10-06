@@ -16,6 +16,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=data.series:cadence heartrate elevation speed pace totaldistance totalinterval totalrise totalfall
 #=data.yaxis.show:cadence heartrate elevation speed pace
 #=graph.meta.display:
+#=speed:speed
 
 ################ Dimensions
 #=container.width:90%
@@ -68,7 +69,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=cadence.yaxis.left:true
 #=elevation.yaxis.left:false
 #=speed.yaxis.left:true
-#=pace.yaxis.left:false
+#=pace.yaxis.left:true
 
 ################ What labels should the axis have?
 #=heartrate.axis.title:Heartrate (bpm)
@@ -90,6 +91,10 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=heartrate.dash.style:shortdot
 {configuration}
 
+
+
+Speed: {show.speed}
+Pace: {show.pace}
 -->
 
 <style type="text/css" data-condition="{css.inline}" >
@@ -176,7 +181,8 @@ Define Defaults for rendering the charts. These values can be overwritten by val
         <tr data-condition="{gpx.contain.heartrate}" class="gpxheartrate" ><th>{heartrate.legend.title}</th><td>{gpx.calc.heartrate.min}</td><td>{gpx.calc.heartrate.avg}</td><td>{gpx.calc.heartrate.max}</td><td>{heartrate.unit}</td></tr>
         <tr data-condition="{gpx.contain.elevation}" class="gpxelevation" ><th>{elevation.legend.title}</th><td>{gpx.calc.elevation.min}</td><td>{gpx.calc.elevation.avg}</td><td>{gpx.calc.elevation.max}</td><td>{elevation.unit}</td></tr>
         <tr data-condition="{gpx.contain.elevation}" class="gpxelevation"><th>&nbsp;</th><td colspan="2">Rise: {gpx.stat.elevation.rise}{elevation.unit}</td><td colspan="2">Fall: {gpx.stat.elevation.fall}{elevation.unit}</td></tr>
-        <tr data-condition="{gpx.contain.speed}" class="gpxspeed" ><th>{speed.legend.title}</th><td>{gpx.calc.speed.min}</td><td>{gpx.calc.speed.avg}</td><td>{gpx.calc.speed.max}</td><td>{speed.unit}</td></tr>
+        <tr data-condition="{show.speed}=1" class="gpxspeed" ><th>{speed.legend.title}</th><td>{gpx.calc.speed.min}</td><td>{gpx.calc.speed.avg}</td><td>{gpx.calc.speed.max}</td><td>{speed.unit}</td></tr>
+        <tr data-condition="{show.pace}=1" class="gpxspeed" ><th>{pace.legend.title}</th><td>{gpx.calc.pace.min}</td><td>{gpx.calc.pace.avg}</td><td>{gpx.calc.pace.max}</td><td>{pace.unit}</td></tr>
         <tr data-condition="{gpx.contain.distance}" class="gpxdistance"><th>{distance.legend.title}</th><td>&nbsp;</td><td>&nbsp;</td><td>{gpx.stat.distance.max}</td><td>{distance.unit}</td></tr>
         <tr data-condition="{gpx.contain.time}"><th>{time.legend.title}</th><td>{gpx.calc.time.min}</td><td>&nbsp;</td><td>{gpx.calc.time.max}<td></tr>
       </tbody>

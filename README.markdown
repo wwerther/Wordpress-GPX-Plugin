@@ -44,6 +44,8 @@ There are a lot of optional-parameters. Almost all default-configurations can be
 * subtitle \-\> The text below the title (on the right). If not set it contains start- and end- datetime of the gpx-file.
 * maxelem \-\> Overwrite this value if you have large GPX files with many trackpoints. This reduces the array-size of the data embedded and increases the rendering time.
 * debug \-\> If this is present the PHP-module put some more information into the HTML-file
+* speed \-\> allows as value: 'speed', 'pace' or 'speed pace' to define what will be displayed. If not defined only speed will be displayed
+
 
 ## Frequently Asked Questions ##
 

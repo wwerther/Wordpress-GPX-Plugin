@@ -216,6 +216,8 @@ class GPX2CHART {
             $key=str_replace('-','.',$key);
             $this->configuration[$key]=$value;
         }
+
+
         $this->configuration['headline']=array_key_exists('headline',$this->configuration) ? $this->configuration['headline'] : ucfirst($this->configuration['type']);
 
         $this->configuration['debug']=$this->debug;
@@ -321,12 +323,17 @@ class GPX2CHART {
         # $metadata=$atts['metadata'] ? array_intersect($metadata,split(' ',$atts['metadata'])) : $metadata;
 
         # We remove the entries where we don't have data in our GPX-File
+        $this->configuration['speed']=explode(" ",$this->configuration['speed']);
+        $this->configuration['speed']=array_diff(Array('speed','pace'),$this->configuration['speed']);
         $this->configuration['data.embed']=explode(" ",$this->configuration['data.embed']);
         $this->configuration['data.embed.available']=array_diff($this->configuration['data.embed'],$gpx->getunavailable());
+        $this->configuration['data.embed.available']=array_diff($this->configuration['data.embed.available'],$this->configuration['speed']);
         $this->configuration['data.series']=explode(" ",$this->configuration['data.series']);
         $this->configuration['data.series.available']=array_diff($this->configuration['data.series'],$gpx->getunavailable());
+        $this->configuration['data.series.available']=array_diff($this->configuration['data.series.available'],$this->configuration['speed']);
         $this->configuration['data.yaxis.show']=explode(" ",$this->configuration['data.yaxis.show']);
         $this->configuration['data.yaxis.show.available']=array_diff($this->configuration['data.yaxis.show'],$gpx->getunavailable());
+        $this->configuration['data.yaxis.show.available']=array_diff($this->configuration['data.yaxis.show.available'],$this->configuration['speed']);
         
         $this->configuration['title'] = array_key_exists('title',$this->configuration) ? $this->configuration['title'] : $gpx->meta->name;
         $this->configuration['subtitle']=array_key_exists('subtitle',$this->configuration) ? $this->configuration['subtitle'] : strftime('%d.%m.%Y %H:%M',$gpx[0]['time'])."-".strftime('%d.%m.%Y %H:%M',$gpx[-1]['time']);
@@ -431,6 +438,18 @@ class GPX2CHART {
         switch ($matches[1]) {
             case 'configuration':
                 return 'Configuration:'.var_export ($this->configuration,true)."\nData:".join(',',array_keys($this->data))."\n";
+            break;
+
+            case 'show.speed':
+                if (! is_array($this->configuration['speed'])) return 0;
+                if (in_array('speed',$this->configuration['speed'])) return 0;
+                return 1;
+            break;
+
+            case 'show.pace':
+                if (! is_array($this->configuration['speed'])) return 0;
+                if (in_array('pace',$this->configuration['speed'])) return 0;
+                return 1;
             break;
 
             case 'calc.heartrate.avg':
