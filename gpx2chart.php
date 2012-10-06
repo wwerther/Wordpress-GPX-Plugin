@@ -287,6 +287,7 @@ class GPX2CHART {
         $jsvar['cadence']="gpx2chartdata[$divno]['cadence']";
         $jsvar['elevation']="gpx2chartdata[$divno]['elevation']";
         $jsvar['speed']="gpx2chartdata[$divno]['speed']";
+        $jsvar['pace']="gpx2chartdata[$divno]['pace']";
 
         $jsvar['totaldistance']="gpx2chartdata[$divno]['totaldistance']";
         $jsvar['totalinterval']="gpx2chartdata[$divno]['totalinterval']";
@@ -300,6 +301,7 @@ class GPX2CHART {
         $labelformat['cadence']='return value + " rpm";';
         $labelformat['elevation']='return Math.round(value) + " m";';
         $labelformat['speed']='return Math.round(value*100)/100 + " km/h";';
+        $labelformat['pace']='return Math.round(value*100)/100 + " min/km";';
         $labelformat['totaldistance']='if (value>1000) return sprintf("%.2f km",Math.round(value/10)/100); return Math.round(value) + " m"';
         $labelformat['totalinterval']='return sprintf("%02d:%02d:%02d",Math.floor(value/3600),Math.floor(value/60)%60,value%60);';
         $labelformat['totalrise']='if (value>1000) return Math.round(value/10)/100 + " km"; return Math.round(value) + " m"';
@@ -308,6 +310,7 @@ class GPX2CHART {
         # Adjust the display of elevation a little bit, so the graph does not look to rough if we don't have high differences between min and max
         # In this case we have at least 40m that are displayed
         $additionalparameters['elevation']='min: '.($gpx->min('elevation')-20).',max: '.($gpx->max('elevation')+20).',';
+        $additionalparameters['pace']='min: 0, max: '.($gpx->median('pace')+2).',';
 
         # The maximum series that are available
         # $process=array('heartrate','cadence','elevation','speed');

@@ -12,9 +12,9 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=css.inline:true
 #=type:running
 #=maxelem:0
-#=data.embed:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall lat lon
-#=data.series:cadence heartrate elevation speed totaldistance totalinterval totalrise totalfall
-#=data.yaxis.show:cadence heartrate elevation speed
+#=data.embed:cadence heartrate elevation speed pace totaldistance totalinterval totalrise totalfall lat lon
+#=data.series:cadence heartrate elevation speed pace totaldistance totalinterval totalrise totalfall
+#=data.yaxis.show:cadence heartrate elevation speed pace
 #=graph.meta.display:
 
 ################ Dimensions
@@ -32,17 +32,20 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=speed.color:#CACA00
 #=time.color:#000
 #=distance.color:#000
+#=pace.color:#DADA00
 
 ################ What unit's should be used?
 #=heartrate.unit:bpm
 #=cadence.unit:rpm
 #=elevation.unit:m
 #=speed.unit:km/h
+#=pace.unit:min/km
 
 ################ What's the name of the series in the legend?
 #=heartrate.legend.title:Heartrate
 #=cadence.legend.title:Cadence
 #=speed.legend.title:Speed
+#=pace.legend.title:Pace
 #=elevation.legend.title:Altitude
 #=distance.legend.title:Distance
 
@@ -50,6 +53,7 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=cadence.series.name:Cadence
 #=elevation.series.name:Altitude
 #=speed.series.name:Speed
+#=pace.series.name:Pace
 #=distance.series.name:Distance
 #=time.series.name:Time
 #=totaldistance.series.name:Distance
@@ -64,20 +68,23 @@ Define Defaults for rendering the charts. These values can be overwritten by val
 #=cadence.yaxis.left:true
 #=elevation.yaxis.left:false
 #=speed.yaxis.left:true
+#=pace.yaxis.left:false
 
 ################ What labels should the axis have?
 #=heartrate.axis.title:Heartrate (bpm)
 #=cadence.axis.title:Cadence (rpm)
 #=elevation.axis.title:Altitude (m)
 #=speed.axis.title:Speed (km/h)
+#=pace.axis.title:Pace (min/km)
 
 ################ How should the ticks of the axis should be labeled?
 #=heartrate.axis.format:return value.toFixed(axis.tickDecimals) + "bpm  ";
 #=cadence.axis.format:return value.toFixed(axis.tickDecimals) + "rpm";
 #=elevation.axis.format:return value.toFixed(axis.tickDecimals) + "m";
-#=speed.axis.format:return value.toFixed(axis.tickDecimals) + "km/h";
+#=speed.axis.format:return value.toFixed(axis.tickDecimals);
 #=distance.axis.format:return value.toFixed(axis.tickDecimals) + "km";
 #=time.axis.format:return value.toFixed(axis.tickDecimals) + "h";
+#=pace.axis.format:return value.toFixed(axis.tickDecimals);
 
 #=elevation.series.type:areaspline
 #=heartrate.dash.style:shortdot

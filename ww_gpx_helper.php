@@ -66,6 +66,11 @@ class GPX_TRACKPOINT implements ArrayAccess {
         $this->data['totalinterval']=$this->data['interval']+$trackpoint['totalinterval'];
         if ($this->data['interval']>0) {
             $this->data['speed']=($this->data['distance']/$this->data['interval'])*3.6;
+            if ($this->data['speed']>0) {
+                 $this->data['pace']=(1/ $this->data['speed']*60);
+            } else {
+                 $this->data['pace']=null;
+            }
         }
     }
 
@@ -428,6 +433,19 @@ class WW_GPX implements Countable, ArrayAccess{
     public function avg($series) {
         $data=$this->getall($series);
         return sprintf('%.2f',array_sum($data)/count($data));
+    }
+
+    public function median($series) {
+        $data=$this->getall($series);
+        sort($data);
+        $anzahl=count($data);
+        if ($anzahl == 0) return 0;
+        if ($anzahl % 2 == 0) {
+            $value=($anzahl[($anzahl/2)-1]+$anzahl[($anzahl/2)]+1)/2;
+        } else {
+            $value=$data[$anzahl/2];
+        }
+        return sprintf('%.2f',$value);
     }
 
     public function averageheartrate() {
