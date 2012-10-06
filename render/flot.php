@@ -8,6 +8,7 @@ class render_flot {
 	public function create_series($seriesid,$seriesname,$seriescolor,$seriesaxis,$series_data_name,$dashstyle=null,$seriestype=null,$labelformat=null) {
         $seriestype=is_null($seriestype)? "" : "lines: { fill: 0.3},";
         $labelformat=is_null($labelformat)? "" : "labelformat: function(value) { $labelformat },";
+        $showseries=($seriesaxis<0) ? "show: false,": "";
         return " {
             identifier: '$seriesid',
             label: '$seriesname',
@@ -15,6 +16,7 @@ class render_flot {
             color: '$seriescolor',
             $seriestype
             $labelformat
+            $showseries
             data: $series_data_name
         }
         ";
@@ -89,23 +91,26 @@ EOT;
 
 return <<<EOT
 <script type="text/javascript">
-    if (console) {
-        if (console.debug) {
-            console.debug("Now binding hover function");
-        }
-    }
+    if (console && console.debug) console.debug("Now binding hover function");
+
     gpx2chart['handle'][$instance]=jQuery("#${container}chart");
 
     function format_dataset (color,seriesname,seriesx,seriesy) {
         return "<div class='gpx2chartrow'><div class='gpx2chartlabel' style='color:"+color+";'>"+seriesname+"</div><div class='gpx2chartvalue'>"+seriesy+"</div></div>";
     }
 
-    gpx2chart['handle'][$instance].bind("plothover", function (evt, position, item, placeholder, orgevent){
-        plot=placeholder.data('plot')
-        series = plot.getData();
+    gpx2chart['handle'][$instance].bind("plothover", function (evt, pos, item ){
+
+/*        if (console && console.debug) console.debug("hover function: Event: ",evt);
+        if (console && console.debug) console.debug("hover function: data-pos: ",pos);
+        if (console && console.debug) console.debug("hover function: data-item:  ",item);
+*/
+
+        plot=jQuery(this).data('plot');
         text=""
         if (item) {
-            var d = new Date(series[0].data[item.dataIndex][0]);
+            series =plot.getData();
+            var d = new Date(item.datapoint[0]);
             text="<div class='gpx2charttoolhead'>"+d.strftime('%d.%m.%Y %H:%M:%S')+"</div><div>";
             for (var i = 0; i < series.length; i++) {
                 value=series[i].data[item.dataIndex][1];
@@ -116,8 +121,8 @@ return <<<EOT
             }
             text=text+"</div>";
             jQuery("#${container}tooltip").html(text);
-            jQuery("#${container}tooltip").css("top",(orgevent.clientY+10)+"px");
-            jQuery("#${container}tooltip").css("left",(orgevent.clientX+10)+"px");
+            jQuery("#${container}tooltip").css("top",(pos.clientY+10)+"px");
+            jQuery("#${container}tooltip").css("left",(pos.clientX+10)+"px");
             jQuery("#${container}tooltip").css("display","block");
         }
         else {

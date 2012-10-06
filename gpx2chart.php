@@ -76,7 +76,10 @@ class GPX2CHART {
     		wp_enqueue_script('gpx2chart');
     		wp_enqueue_script('flotcross');
     		wp_enqueue_script('flotnavigate');
+    		wp_enqueue_script('flottime');
     		wp_enqueue_script('flotselection');
+    		wp_enqueue_script('flottooltip');
+    		wp_enqueue_script('flotaxislabel');
 
     		wp_enqueue_script('highcharts');
     		wp_enqueue_script('highchartsexport');
@@ -101,9 +104,11 @@ class GPX2CHART {
         wp_deregister_script('excanvas');
         wp_deregister_script('flot');
         wp_deregister_script('flotcross');
+        wp_deregister_script('flottime');
         wp_deregister_script('flotnavigate');
+        wp_deregister_script('flottooltip');
         wp_deregister_script('flotselection');
-        wp_deregister_script('flotselection');
+        wp_deregister_script('flotaxislabel');
         wp_deregister_script('gpx2chart');
 
         wp_register_script('gpx2chart', GPX2CHART_PLUGIN_URL."js/gpx2chart$minimized.js") ;
@@ -114,8 +119,11 @@ class GPX2CHART {
 
         wp_register_script('flot', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot${minimized}.js", array('jquery','excanvas','strftime','sprintf'), '2.1.4', false);
         wp_register_script('flotcross', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.crosshair$minimized.js", array('jquery','flot'), '2.1.4', false);
+        wp_register_script('flottime', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.time$minimized.js", array('jquery','flot'), '2.1.4', false);
         wp_register_script('flotnavigate', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.navigate$minimized.js", array('jquery','flot'), '2.1.4', false);
+        wp_register_script('flottooltip', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.tooltip$minimized.js", array('jquery','flot'), '2.1.4', false);
         wp_register_script('flotselection', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.selection$minimized.js", array('jquery','flot'), '2.1.4', false);
+        wp_register_script('flotaxislabel', GPX2CHART_PLUGIN_URL."js/flot/jquery.flot.axislabel$minimized.js", array('jquery','flot'), '2.1.4', false);
 
         /* Only register Highcharts if library is present */
         if (file_exists(join(DIRECTORY_SEPARATOR, array(GPX2CHART_PLUGIN_DIR,'js','highcharts')))) {
