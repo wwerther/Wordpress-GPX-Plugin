@@ -80,6 +80,10 @@ Yes, of course! I would really appreciate this. But I'm very sorry to tell, that
 
 ## Changelog ##
 
+### 0.4.0 ###
+* updated flot-library to more recent version
+* added basic support for displaying pace
+
 ### 0.3.3 ###
 * removed bundle with Highcharts API. Library is not compatible with GPL. So if you need to use Highcharts please download it yourself
 
