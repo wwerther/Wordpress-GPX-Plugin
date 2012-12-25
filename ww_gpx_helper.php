@@ -44,7 +44,6 @@ class GPX_TRACKPOINT implements ArrayAccess {
         $this->data['speed']=null;
         $this->data['cadence']=null;
         $this->data['heartrate']=null;
-
         $this->data['totalinterval']=0;
         $this->data['totaldistance']=0;
         $this->data['totalrise']=0;
@@ -165,7 +164,7 @@ class WW_GPX implements Countable, ArrayAccess{
 
     public function __construct ($filename) {
         $this->filename=$filename;
-        $this->parser = xml_parser_create();
+        $this->parser = xml_parser_create_ns();
 
         xml_set_object($this->parser, $this);
         xml_set_element_handler($this->parser, "tag_open", "tag_close");
@@ -221,51 +220,59 @@ class WW_GPX implements Countable, ArrayAccess{
         $this->maxelem=$elem;
     }
 
+    private function __normalizenstag($nstag) {
+        $nstag=strtoupper($nstag);
+        $nstag=str_replace(array('HTTP://WWW.TOPOGRAFIX.COM/GPX/1/0',
+                                 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1'),
+                           'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1',$nstag);
+        return $nstag;
+    }
+
     function tag_open($parser, $tag, $attributes) {
-        $tag=strtoupper($tag);
+        $tag=$this->__normalizenstag($tag);
         switch ($tag) {
-             case 'GPX': {
+             case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:GPX': {
                 $this->meta->creator=$attributes['CREATOR'];
                 $this->meta->version=$attributes['VERSION'];
-                array_push($this->state,$tag);
+                array_push($this->state,'GPX');
                 # var_dump($attributes); 
                 break;        
             }
-            case 'METADATA': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:METADATA': {
                 if ($this->state(-1) != 'GPX') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                array_push($this->state,$tag);
+                array_push($this->state,'METADATA');
                 break;
             }
-            case 'LINK': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:LINK': {
                 $this->meta->link='';
                 $this->meta->link->href=$attributes['HREF'];
-                array_push($this->state,$tag);
+                array_push($this->state,'LINK');
                 break;
             }
-            case 'TRK': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TRK': {
                 if ($this->state(-1) != 'GPX') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                array_push($this->state,$tag);
+                array_push($this->state,'TRK');
                 break;
             }
-            case 'NAME': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:NAME': {
                 if (! (($this->state(-1) == 'TRK') or ($this->state(-1) == 'METADATA'))) {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                array_push($this->state,$tag);
+                array_push($this->state,'NAME');
                 break;
             }
-            case 'TRKSEG': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TRKSEG': {
                 if ($this->state(-1) != 'TRK') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                array_push($this->state,$tag);
+                array_push($this->state,'TRKSEG');
                 break;
             }
-            case 'TRKPT': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TRKPT': {
                 if ($this->state(-1) != 'TRKSEG') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
@@ -274,50 +281,74 @@ class WW_GPX implements Countable, ArrayAccess{
                 $this->currenttp['lat']=$attributes['LAT'];
                 $this->currenttp['lon']=$attributes['LON'];
 
-                array_push($this->state,$tag);
+                array_push($this->state,'TRKPT');
                 break;
             }
-            case 'ELE': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:ELE': {
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
                 $this->track->meta->elevation=true;
-                array_push($this->state,$tag);
+                array_push($this->state,'ELE');
                 break;
             }
-            case 'TIME': {
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TIME': {
                 $state=$this->state(-1);
                 if (! (($state == 'TRKPT') || ($state == 'METADATA'))) {
 #                    throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
-                array_push($this->state,$tag);
+                array_push($this->state,'TIME');
                 break;
             }
-            case 'GPXDATA:HR': 
-            case 'GPXTPX:HR': {
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/TRACKPOINTEXTENSION/V1:HR':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:HR': {
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
                 $this->track->meta->heartrate=true;
-                array_push($this->state,$tag);
+                array_push($this->state,'HR');
                 break;
             }
-            case 'GPXTPX:CAD': {
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/TRACKPOINTEXTENSION/V1:CAD':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:CADENCE': {
                 if ($this->state(-1) != 'TRKPT') {
                     throw new Exception("INVALID $tag at current position. Please check GPX-File");
                 }
                 $this->track->meta->cadence=true;
-                array_push($this->state,$tag);
+                array_push($this->state,'CAD');
                 break;
             }
-            case 'TEXT': {
-                array_push($this->state,$tag);
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TEXT': {
+                array_push($this->state,'TEXT');
                 # var_dump($parser, $tag, $attributes); 
                 break;
+            }
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:LAP':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:STARTPOINT':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:ENDPOINT':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:STARTTIME':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:ENDTIME':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:ELAPSEDTIME':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:INDEX':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:TRIGGER':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:INTENSITY':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:CALORIES':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:DISTANCE':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:SUMMARY':
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:AVERAGEHEARTRATEBPM':
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:MAXIMUMSPEED':
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:MAXIMUMHEARTRATEBPM':
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/TRACKPOINTEXTENSION/V1:TRACKPOINTEXTENSION':
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/GPXEXTENSIONS/V3:TRACKEXTENSION':
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:BOUNDS':
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/GPXEXTENSIONS/V3:DISPLAYCOLOR':
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:EXTENSIONS': {
+               # Ignore these tags
+               break;
             }
             default: {
-                # print "TAG-OPEN: $tag \n";
-                # var_dump($parser, $tag, $attributes); 
+#                print "<!-- TAG-OPEN: '$tag' -->\n";
+#                var_dump($parser, $tag, $attributes); 
             }
         }
     }
@@ -349,15 +380,14 @@ class WW_GPX implements Countable, ArrayAccess{
                 }
                 break;
             }
-            case 'GPXTPX:CAD': {
+            case 'CAD': {
                 if ($this->state(-2) == 'TRKPT') {
                     $this->currenttp['cadence']=$cdata;
                     $this->meta->cadence=true;
                 }
                 break;
             }
-            case 'GPXTPX:HR': 
-            case 'GPXDATA:HR': {
+            case 'HR': {
                 if ($this->state(-2) == 'TRKPT') {
                     $this->currenttp['heartrate']=$cdata;
                     $this->meta->heartrate=true;
@@ -371,24 +401,28 @@ class WW_GPX implements Countable, ArrayAccess{
     }
 
     function tag_close($parser, $tag) {
-        $tag=strtoupper($tag);
+        $tag=$this->__normalizenstag($tag);
 
         switch ($tag) {
-            case 'GPX': 
-            case 'METADATA': 
-            case 'LINK': 
-            case 'TEXT': 
-            case 'NAME': 
-            case 'TRK': 
-            case 'TRKSEG': 
-            case 'TRKPT': 
-            case 'ELE': 
-            case 'TIME': 
-            case 'GPXTPX:HR': 
-            case 'GPXDATA:HR': 
-            case 'GPXTPX:CAD':  {
-                if (array_pop($this->state)!=$tag) {
-                    throw new Exception ("ungültige Schachtelung");
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:GPX': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:METADATA': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:LINK': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TEXT': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:NAME': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TRK': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TRKSEG': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TRKPT': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:ELE': 
+            case 'HTTP://WWW.TOPOGRAFIX.COM/GPX/1/1:TIME': 
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/TRACKPOINTEXTENSION/V1:HR':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:HR': 
+            case 'HTTP://WWW.GARMIN.COM/XMLSCHEMAS/TRACKPOINTEXTENSION/V1:CAD':
+            case 'HTTP://WWW.CLUETRUST.COM/XML/GPXDATA/1/0:CADENCE':  {
+                $tag=explode(':',$tag);
+                $last=array_pop($this->state);
+#                print "<!-- CLOSE '".$tag[2]."' expected '$last' -->\n";
+                if ($last!=$tag[2]) {
+                    throw new Exception ("CLOSE ungültige Schachtelung. Found '".$tag[2]."' but expected '$last'");
                 }
                 break;
             }
