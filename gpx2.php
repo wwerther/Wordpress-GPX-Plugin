@@ -548,478 +548,10 @@ class WW_GPX implements Countable, ArrayAccess{
 }
 
 
-define('GPX_ALLTRACKS',null);
-define('GPX_ALLSEGMENTS',null);
-
-
-define('XMLREMOVE','XMLREMOVE_REMOVE_THIS_ITEM');
-
-
-define('XMLelementprefix','GPX_');
-
-class ww_XMLelement extends SimpleXMLElement {
-
-    // taken from http://www.php.net/manual/en/book.simplexml.php
-    /*
-     * Returns this object as an instance of the given class.
-     */
-    public function asInstanceOf($class_name) {
-        // should check that class_name is valid
-        return simplexml_import_dom(dom_import_simplexml($this), $class_name);
-    }
-
-    public function addNamespace($prefix,$namespace,$xsd=null) {
-        $namespaces=$this->getDocNamespaces(true);
-
-        if (array_key_exists($prefix,$namespaces)) {
-            # echo "Namespace-prefix $prefix already exists";
-            return $this;
-        }
-
-        $classname=get_class($this);
-        # Yes this is right... one namespace would be removed otherwise
-        $this->addattribute('xmlns:xmlns:'.$prefix,$namespace);
-        if (! is_null($xsd) ) {
-            $schemaLocation=$this->attributes('http://www.w3.org/2001/XMLSchema-instance')->schemaLocation; 
-            $schemaLocation.=" $namespace $xsd";
-            $this->attributes('http://www.w3.org/2001/XMLSchema-instance')->schemaLocation=$schemaLocation;
-        }
-        return simplexml_load_string($this->asXML(),$classname);
-    }
-
-    public function __call($name, array $arguments) {
-        // class could be mapped according $this->getName()
-        $class_name = XMLelementprefix.$this->getName();
-        
-        if (class_exists($class_name)) {
-            if (method_exists($class_name,'_'.$name)) {
-                echo "magic __call called for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
-                print 'Class: '.get_class($this);
-                $instance = $this->asInstanceOf($class_name);
-                print 'Class: '.get_class($instance);
-                return call_user_func_array(array($instance, '_'.$name), $arguments);
-            }
-            throw new Exception('Method '.$name.' does not exist in class '.$class_name);
-        }
-        echo "magic __call failed for method '$name' on instance of '".get_class()."' for class '".$this->getName()."'\n";    
-        throw new Exception('Class ' . $class_name . ' does not exist');
-    }
-
-}
-
-class GPX_gpx extends ww_XMLelement {
-
-    public function _getpoints() {
-        $datapoints=array();
-        $min=0;
-        $max=count($this->trk);
-        print "trk $min-$max\n";
-        for ($tc=$min;$tc<$max;$tc++) {
-            print "runpoint $tc";
-            print get_class($this->trk[$tc]);
-            print "\n";
-            $this->trk[$tc]->getpoints();
-        }
-        return $datapoints;
-    }
-}
-
-class GPX_trk extends ww_XMLelement {
-
-    public function _getpoints() {
-        print "Blub: ".count($this->trkseg)." ".get_class()."\n";
-    }
-
-}
-
-class GPX_trkpt extends ww_XMLelement {
-/*
-<trkpt lat="48.161728" lon="11.751040">
-<ele>521.65</ele>
-<time>2011-04-25T15:54:53Z</time>
-<extensions>
-<gpxtpx:TrackPointExtension>
-<gpxtpx:hr>90</gpxtpx:hr>
-</gpxtpx:TrackPointExtension>
-</extensions>
-</trkpt>
-*/
-
-/* 
- * Garmin extensions v3
- *
- * Garmin Trackpoint Extension v1
- *      http://www.garmin.com/xmlschemas/TrackPointExtension/v1
- * 
- * atemp    -> ambient temperature (Celsius)
- * wtemp    -> water temperature (Celsius)
- * depth    -> depth (meters)
- * hr       -> heartrate
- * cad      -> Cadence
- */
-
-    public function hr($newval=null) {
-        $child=$this->extensions[0]->children('http://www.garmin.com/xmlschemas/TrackPointExtension/v1');
-
-        if ($newval==XMLREMOVE) {
-            unset($child->TrackPointExtension->hr);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $child->TrackPointExtension->hr=$newval;
-        }
-
-        return $child->TrackPointExtension->hr;
-    }
-
-    public function cad($newval=null) {
-        $child=$this->extensions[0]->children('http://www.garmin.com/xmlschemas/TrackPointExtension/v1');
-
-        if ($newval==XMLREMOVE) {
-            unset($child->TrackPointExtension->cad);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $child->TrackPointExtension->cad=$newval;
-        }
-
-        return $child->TrackPointExtension->cad;
-    }
-
-    public function atemp($newval=null) {
-        $child=$this->extensions[0]->children('http://www.garmin.com/xmlschemas/TrackPointExtension/v1');
-
-        if ($newval==XMLREMOVE) {
-            unset($child->TrackPointExtension->atemp);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $child->TrackPointExtension->atemp=$newval;
-        }
-
-        return $child->TrackPointExtension->atemp;
-    }
-
-    public function wtemp($newval=null) {
-        $child=$this->extensions[0]->children('http://www.garmin.com/xmlschemas/TrackPointExtension/v1');
-
-        if ($newval==XMLREMOVE) {
-            unset($child->TrackPointExtension->wtemp);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $child->TrackPointExtension->wtemp=$newval;
-        }
-
-        return $child->TrackPointExtension->wtemp;
-    }
-
-    public function depth($newval=null) {
-        $child=$this->extensions[0]->children('http://www.garmin.com/xmlschemas/TrackPointExtension/v1');
-
-        if ($newval==XMLREMOVE) {
-            unset($child->TrackPointExtension->depth);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $child->TrackPointExtension->depth=$newval;
-        }
-
-        return $child->TrackPointExtension->depth;
-    }
-
-    public function speed($newval=null) {
-        $child=$this->extensions[0]->children('http://wwerther.de/xmlschemas/TrackPointExtension/v1');
-        
-        if ($newval==XMLREMOVE) {
-            unset($child->TackPointExtension->speed);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $child->TackPointExtension->speed=$newval;
-        }
-
-        return $child->TackPointExtension->speed;
-    }
-
-
-    public function ele($newval=null) {
-        if ($newval==XMLREMOVE) {
-            unset($this->ele);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $this->ele=$newval;
-        }
-
-        return $this->ele;
-    }
-
-    public function time($newval=null) {
-        if ($newval==XMLREMOVE) {
-            unset($this->time);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            # 2011-04-25T15:54:53Z
-            $this->time=strftime('%Y-%m-%dT%H:%M:%SZ',$newval);
-        }
-
-        return strtotime($this->time);
-    }
-
-    public function lat($newval=null) {
-        if ($newval==XMLREMOVE) {
-            unset($this['lat']);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $this['lat']=$newval;
-        }
-
-        return $this['lat'];
-    }
-
-    public function lon($newval=null) {
-        if ($newval==XMLREMOVE) {
-            unset($this['lon']);
-            return;
-        }
-
-        if (! is_null($newval)) {
-            $this['lon']=$newval;
-        }
-
-        return $this['lon'];
-    }
-
-}
-
-class Test extends ww_XMLelement {
-    public function setValue($string) {
-        $this->{0} = $string;
-    }
-}
-
-class GPX2 {
-
-    private $filename=null;
-    private $xml=null;
-
-    public function __construct ($filename) {
-        $this->filename=$filename;
-        $this->xml = simplexml_load_file($filename,'ww_XMLelement',LIBXML_NOBLANKS);
-    }
-
-
-    public function get_trackpoints($track=GPX_ALLTRACKS,$segment=GPX_ALLSEGMENTS) {
-    
-        if ($track==GPX_ALLTRACKS) {
-            foreach ($this->xml->trk as $trk) {
-                
-            }
-        } else {
-            $trk=$this->xml->trk[$track];
-
-        }
-    
-    }
-
-    private function __get_tp ($trk,$segment) {
-        if ($segment==GPX_ALLSEGMENTS) {
-            foreach ($trk->trkseg as $trkseg) {
-            }
-        } else {
-            $trkseg=$trk->trkseg[$trkseg];
-        }
-    }
-
-    public function statistics() {
-        $text='';
-        
-        $text.='Statistic of '.$this->filename."\n";
-
-        $text.=var_export($this->xml->getdocnamespaces(true),true);
-
-#      $text.='tc '.$this->xml->get_trk_count()."\n";
-
-        $text.='instance '.get_class($this->xml)."\n";
-
-        #$this->xml->trk[0]->set_name('Hallo Walter');
-
-#        $text.='hr '.$this->xml->trk[0]->trkseg[0]->trkpt[0]->hr()."\n";
-
-        $text.='trackpoints: '.$this->xml->getpoints();
-
-        #foreach ($this->xml->trk as $trk) {
-            #$trk=$trk->asInstanceOf('GPX_trk');
-        #    $text.='trks '.var_export($trk)."\n";
-        #}
-
-        return $text;
-    }
-
-    public function asXML() {
-        $dom = dom_import_simplexml($this->xml)->ownerDocument;
-        $dom->formatOutput = true;
-        return $dom->saveXML();
-    
-        #return $this->xml->asXML();
-    }
-
-    public function getall ($needle) {
-        $arr=array();
-        foreach ($this->xml->trk[0]->trkseg[1] as $point) {
-            array_push($arr,$point->lat());
-        } 
-        return $arr;
-    }
-}
-
-
-class xmlelement implements RecursiveIterator , Countable, ArrayAccess {
-
-    private $attributes=null;
-    private $children=null;
-    private $namespaces=null;
-
-    private $name='';
-    
-    public function __construct ($data) {
-        $this->attributes=array();
-    }
-
-    public function load_string($data) {
-
-    }
-
-    public function getChildren() {
-    }
-            
-    public function hasChildren () {
-    }
-     
-    public function getName() {
-        return $this->name; 
-    }
-
-    public function current() {
-    }
-
-    public function key () {
-    }
-
-    public function next() {
-    }
-
-    public function rewind() {
-   
-    }
-    
-    public function valid() {
-
-    }
-    
-    public function count() {
-
-    }
-
-    public function curnamespace($current) {
-        $this->currentnamespace=$current;
-    }
-
-    public function offsetExists ( $offset ) {
-        return array_key_exists($this->attributes[$this->currentnamespace],$offset);
-    }
-
-    public function offsetGet ( $offset ) {
-        return $this->attributes[$this->currentnamespace][$offset];
-    }
-
-    public function offsetSet ( $offset , $value ) {
-        $this->attributes[$this->currentnamespace][$offset]=$value;    
-    }
-
-    public function offsetUnset ( $offset ) {
-        unset($this->attributes[$this->currentnamespace][$offset]);        
-    }
-    
-    public function asXML() {
-        $writer=new XMLWriter();
-        # $writer->setIndent(true);
-        $writer->openMemory();
-
-        $writer->startDocument('1.0','UTF-8');
-        # $writer->startdtd('html','-//WAPFORUM//DTD XHTML Mobile 1.0//EN', 'http://www.wapforum.org/DTD/xhtml-mobile10.dtd');
-        # $writer->enddtd();
-        
-        $this->__xml($writer);
-
-        $writer->endDocument();
-        return $writer->outputMemory(TRUE);
-    }
-
-    public function __xml($writer) {
-        # print "__xml\n";
-        $writer->startelement($this->getName());
-
-        # $writer->writeattribute( 'xmlns', 'http://www.wapforum.org/DTD/xhtml-mobile10.dtd');
-        $writer->writeattribute( 'xm:lang', 'en');
-
-        foreach ($this->attributes as $nspaceuri=>$attributes) {
-            foreach ($attributes as $key=>$value) {
-                $writer->startAttributeNS ( 'prefix' , $value , $nspaceuri );
-                $writer->text($value);
-                $writer->endAttribute();
-            }
-        }
-        
- $writer->startAttributeNS ( '' , 'nae', 'http://wwerther.de/uri' );
-
-        $writer->endAttribute();
-
-        $writer->startElementNS ( 'prefix' , $this->getName(), 'http://wwerther.de/uri' );
-        # $writer->startelement($this->getName());
-
-        # xmlwriter_write_attribute( $writer, 'xmlns', 'http://www.wapforum.org/DTD/xhtml-mobile10.dtd');
-        # xmlwriter_write_attribute( $writer, 'xm:lang', 'en');
-
-        $writer->endelement();
-        $writer->endelement();
-    }
-
-}
-
-/*
-$xml = new ww_XMLelement('<example><test/></example>');
-$test = $xml->test->asInstanceOf('Test');
-echo 'xml-test   '.get_class($xml->test), "\n";
-echo 'test-cast  '.get_class($test), "\n";
-
-$test->setValue('value set directly by instance of Test');
-echo (string)$xml->test, "\n";
-echo (string)$test, "\n";
-
-$xml->test->setValue('value set by instance of XmlClass and magic __call');
-echo (string)$xml->test, "\n";
-echo (string)$test, "\n";
-
- 
-*/
-
 $filename='./test/heartrate_pretty.gpx';
-#   $filename='./test/long.gpx';
+$filename='./test/long.gpx';
 
-$filename='./test/heartrate.gpx';
+#$filename='./test/heartrate.gpx';
 
 
 if (file_exists($filename)) {
@@ -1031,82 +563,241 @@ if (file_exists($filename)) {
    exit('Konnte test.xml nicht öffnen.');
 }
 
+$data = implode("", file($filename));
+#print htmlspecialchars($data);
+    $parser = xml_parser_create();
+    xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
+    xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, 1);
 
 
 
+ #   xml_parse_into_struct($parser, $data, $values, $tags);
+ #   xml_parser_free($parser);
 
-class xmlel {
+#    var_export($values);
+#    var_export($tags);
 
-    public function __construct () {
+exit;
+
+#    $xml= new genericXML();
+    $xml= new GPXroot();
+
+print "<pre>";
+
+    $xml->parse($data);
+
+#    var_dump($xml);
+# print_r($xml);
+# var_export($xml);
+
+print "</pre>";
+
+class genericxml  {
+
+    protected $namespace=null;
+    protected $tag=null;
+
+    protected $attributes=null;
+
+    protected $objects=Array();
+
+    protected $skipcdata = false;
+    protected $value=null;
+
+    protected $supportedtags=Array();
+    
+    private $curobject = null;
+
+    private $objectpointer = null;
+    private $objectstack = Array();
+
+    private $parser;
+
+    # private $parent = null;
+
+    function __construct($parent=null) {
+        # $this->parent=$parent;
     }
 
+    function parse($data) 
+    {
+        $this->parser = xml_parser_create_ns('UTF-8',':');
 
+        xml_set_object($this->parser, $this);
+        xml_set_element_handler($this->parser, "tag_open", "tag_close");
+        xml_parser_set_option($this->parser, XML_OPTION_CASE_FOLDING, 0);
+        xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1);
+        xml_set_character_data_handler($this->parser, "cdata");
 
-    public function load($filename) {
-        $reader = new XMLReader();
-
-        $reader->open($filename);
-        
-        print nl2br("Parsing file $filename\n");
-        $this->__parse($reader);
-        print nl2br("Closing file\n");
-        $reader->close();
-
-        print_r($this);
+        xml_parse($this->parser, $data);
+        $this->curobject=null;
     }
 
+    function tag_open($parser, $tag, $attributes) {
+        ## print get_class($this)." tag open: $tag<br/>\n";
+        ## we don't have an object that is capable of carrying information. So we need to create it
+        if (is_null($this->objectpointer)) {
+            ## print get_class($this)." creates new subtag ".$tag."\n";
 
-    public function __parse($reader) {
-        while($reader->read()) {
-            switch ($reader->nodeType) {
-                case XMLReader::END_ELEMENT: return;#break;#return $tree;
-                case XMLReader::ELEMENT:
-                    print nl2br("Found Element :".$reader->name."\n");
-                    $this->name=$reader->name;
-                    #$node = array('tag' => $reader->name, 'value' => $xml->isEmptyElement ? '' : xml2assoc($xml));
-                    #if($xml->hasAttributes)
-                    #    while($xml->moveToNextAttribute())
-                    #        $node['attributes'][$xml->name] = $xml->value;
-                    #        $tree[] = $node;
-                break;
-                case XMLReader::TEXT:
-                case XMLReader::CDATA:
-                    print nl2br("TEXT/CDATA: $reader->depth  $reader->name $reader->value");
-                    #$tree .= $xml->value;
-                break;
-                default:
-                    print nl2br($reader->name." ".$reader->nodeType."\n");
-                break;
+            ## Check the new object shall be of a different object-class
+            if (in_array($tag,array_keys($this->supportedtags))) {
+                $class=$this->supportedtags[$tag];
+                $this->objectpointer=new $class($this);
+            } else {
+                $this->objectpointer=new genericxml($this);
             }
-            #return $tree; 
+            $this->objectpointer->settag($tag);
+            $this->objectpointer->setattributes($attributes);
+            $this->objects[]=$this->objectpointer;
+        } else {
+            ## print get_class($this)." forward open to ".get_class($this->objectpointer)." ";
+            $this->objectpointer->tag_open($parser,$tag,$attributes);
+            ## print "<br/>";
         }
     }
+
+    public function settag($tag) {
+            preg_match('/^(.*):(.+?)$/',$tag,$match);
+            $this->tag=$match[2];
+            $this->namespace=$match[1];
+    }
+
+    public function setattributes($attributes) {
+            $this->attributes=$attributes;
+    }
+
+    function cdata($parser, $cdata) {
+        if (is_null($this->objectpointer)) {
+            if (! $this->skipcdata ) {
+                $this->value=new genericxml_cdata($this,$cdata);
+                $this->objects[]=$this->value;
+            }
+        } else {
+            $this->objectpointer->cdata($parser,$cdata);
+        }
+    }
+
+    function tag_close($parser, $tag) 
+    {
+        ## print "Tag close: $tag<br/>\n";
+        if (is_null($this->objectpointer->objectpointer)) {
+            ## print get_class($this)." closes ".get_class($this->objectpointer)." for $tag";
+            $this->objectpointer=null;
+        } else {
+            ## print get_class($this)." forwards close of $tag to ".get_class($this->objectpointer)." ";
+            $this->objectpointer->tag_close($parser,$tag);
+            ## print "<br/>";
+        }
+    }
+
+} // end of class xml
+
+class genericxml_cdata {
+
+    ## private $parent;
+    private $data;
+
+    public function __construct($parent=null,$data=null) {
+        ## $this->parent=$parent;
+        $this->data=$data;
+    }
+
+    public function setdata($data) {
+        $this->data=$data;
+        return $this->data;
+   }
+
+    public function getdata () {
+        return $this->data;
+    }
+
+    public function getparent () {
+        return $this->parent;
+    }
+
+};
+
+class GPXroot extends genericxml {
+    protected $supportedtags=Array(
+        "http://www.topografix.com/GPX/1/1:gpx" => 'GPXxml',
+    );
+    protected $skipcdata = true;
+}
+
+
+class GPXxml extends genericxml {
+    protected $supportedtags=Array(
+        "http://www.topografix.com/GPX/1/1:metadata" => 'GPX_Metadata',
+        "http://www.topografix.com/GPX/1/1:trk" => 'GPX_trk',
+    );
+    protected $skipcdata = true;
+}
+
+class GPX_Metadata extends genericxml {
+    protected $supportedtags=Array(
+        "http://www.topografix.com/GPX/1/1:link" => 'GPX_link',
+        "http://www.topografix.com/GPX/1/1:time" => 'GPX_time'
+    );
+    protected $skipcdata = true;
+}
+
+class GPX_trk extends genericxml {
+    protected $supportedtags=Array(
+        "http://www.topografix.com/GPX/1/1:trkseg" => 'GPX_trkseg',
+    );
+    protected $skipcdata = true;
+}
+
+class GPX_trkseg extends genericxml {
+    protected $supportedtags=Array(
+        "http://www.topografix.com/GPX/1/1:trkpt" => 'GPX_trkpt',
+        "http://www.topografix.com/GPX/1/1:extensions" => 'GPX_extensions'
+    );
+    protected $skipcdata = true;
+}
+
+class GPX_extensions extends genericxml {
+    protected $supportedtags=Array(
+    );
+}
+
+class GPX_trkpt extends genericxml {
+    protected $supportedtags=Array(
+    );
+
+    function tag_open($parser, $tag, $attributes) {
+    }
+}
+
+
+class GPX_link extends genericxml {
+    protected $supportedtags=Array(
+        "http://www.topografix.com/GPX/1/1:text" => 'GPX_text'
+    );
+}
+
+class GPX_text extends genericxml {
+    protected $supportedtags=Array(
+    );
+}
+
+class GPX_time extends genericxml {
+    protected $supportedtags=Array(
+    );
+}
+
+
+function parseGPX($values) {
+
+#    for ($i=0; $i < count($values); $i++) {
+#        $mol[$values[$i]["tag"]] = $values[$i]["value"];
+#    }
+    return new mGPX($mol);
 
 }
 
 
-$x=new xmlel();
-
-$x->load($filename);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-$gpx=new GPX2($filename);
+#$gpx=new GPX2($filename);
 
 
 #print nl2br(htmlspecialchars($gpx->asXML()));
@@ -1128,20 +819,5 @@ foreach ($xml->trk->trkseg->trkpt as $data) {
 
 # var_dump($gpx);
 #        $this->xml=$this->xml->addNamespace('ww','http://wwerther.de/xmlschemas/TrackPointExtension/v1');
-print '<pre>';
-print $gpx->statistics();
-
-#$xml->addchild('ww:Walter','test','http://wwerther.de/extensions/');
-
-#$namespaces = $xml->getNamespaces(TRUE);
-#var_dump($namespaces);
-
-#print nl2br(htmlspecialchars($gpx->asXML()));
-
-#var_dump($xml);
-
-#print nl2br(var_export($gpx->getall('hr')));
-print '</pre>';
-
 
 ?>
